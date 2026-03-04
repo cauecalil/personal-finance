@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PACKAGE)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class BankConnection {
-    private String id;
+    private Long id;
     private String itemId;
     private String bankName;
     private String status;

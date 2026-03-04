@@ -6,6 +6,6 @@ import java.util.Optional;
 
 public interface BankConnectionRepository {
     BankConnection save(BankConnection bankConnection);
-    Optional<BankConnection> findById(String id);
-    void delete(String id);
+    Optional<BankConnection> findById(Long id);
+    void delete(Long id);
 }
