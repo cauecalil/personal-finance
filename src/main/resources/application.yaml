@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: personal-finance
+  datasource:
+    url: jdbc:sqlite:finance.db
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.cauecalil: INFO
+    org.hibernate.SQL: WARN
