@@ -22,7 +22,6 @@ public class UserCredentialJpaEntity {
     @Column(nullable = false)
     private String clientSecret;
 
-    @Column(nullable = false)
     private LocalDateTime lastSyncAt;
 
     @Column(nullable = false)

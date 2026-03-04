@@ -6,6 +6,6 @@ import java.util.Optional;
 
 public interface UserCredentialRepository {
     UserCredential save(UserCredential credential);
-    Optional<UserCredential> findById(Long id);
+    Optional<UserCredential> findFirst();
     void delete(Long id);
 }

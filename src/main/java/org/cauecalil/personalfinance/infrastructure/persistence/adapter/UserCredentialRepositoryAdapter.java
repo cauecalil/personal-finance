@@ -23,8 +23,8 @@ public class UserCredentialRepositoryAdapter implements UserCredentialRepository
     }
 
     @Override
-    public Optional<UserCredential> findById(Long id) {
-        return userCredentialJpaRepository.findById(id).map(UserCredentialMapper::toDomain);
+    public Optional<UserCredential> findFirst() {
+        return userCredentialJpaRepository.findFirstByOrderByIdAsc().map(UserCredentialMapper::toDomain);
     }
 
     @Override

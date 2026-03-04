@@ -1,0 +1,31 @@
+package org.cauecalil.personalfinance.application.usecase;
+
+import lombok.RequiredArgsConstructor;
+import org.cauecalil.personalfinance.application.dto.response.GetUserCredentialStatusResponse;
+import org.cauecalil.personalfinance.domain.model.UserCredential;
+import org.cauecalil.personalfinance.domain.repository.UserCredentialRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+public class GetUserCredentialStatusUseCase {
+    private final UserCredentialRepository userCredentialRepository;
+
+    public GetUserCredentialStatusResponse execute() {
+        Optional<UserCredential> userCredential = userCredentialRepository.findFirst();
+
+        if (userCredential.isEmpty()) {
+            return GetUserCredentialStatusResponse.builder()
+                    .configured(false)
+                    .lastSyncAt(null)
+                    .build();
+        }
+
+        return GetUserCredentialStatusResponse.builder()
+                .configured(true)
+                .lastSyncAt(userCredential.get().getLastSyncAt())
+                .build();
+    }
+}
