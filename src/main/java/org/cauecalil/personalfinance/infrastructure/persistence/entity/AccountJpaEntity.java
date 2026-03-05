@@ -17,6 +17,10 @@ public class AccountJpaEntity {
     @Column(nullable = false, updatable = false)
     private String id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bank_connection_id", nullable = false)
+    private BankConnectionJpaEntity bankConnection;
+
     @Column(nullable = false)
     private String name;
 

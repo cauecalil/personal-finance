@@ -7,5 +7,6 @@ import java.util.Optional;
 public interface TransactionRepository {
     Transaction save(Transaction transaction);
     Optional<Transaction> findById(String id);
-    void delete(String id);
+    boolean existsById(String id);
+    void deleteByAccountId(String accountId);
 }

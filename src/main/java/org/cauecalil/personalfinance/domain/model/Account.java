@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Account {
     private String id;
+    private Long bankConnectionId;
     private String name;
     private String type;
     private String subtype;
@@ -23,4 +24,9 @@ public class Account {
 
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    public void updateBalance(BigDecimal amount) {
+        this.balance = amount;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

@@ -28,7 +28,12 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     }
 
     @Override
-    public void delete(String id) {
-        transactionJpaRepository.deleteById(id);
+    public boolean existsById(String id) {
+        return transactionJpaRepository.existsById(id);
+    }
+
+    @Override
+    public void deleteByAccountId(String accountId) {
+        transactionJpaRepository.deleteByAccountId(accountId);
     }
 }

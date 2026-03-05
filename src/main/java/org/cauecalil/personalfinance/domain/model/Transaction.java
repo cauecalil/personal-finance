@@ -4,7 +4,7 @@ import lombok.*;
 import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Getter
@@ -17,8 +17,8 @@ public class Transaction {
     private String description;
     private BigDecimal amount;
     private TransactionType type;
-    private LocalDate date;
     private String category;
+    private Instant occurredAt;
 
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

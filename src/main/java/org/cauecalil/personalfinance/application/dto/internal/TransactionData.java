@@ -3,15 +3,15 @@ package org.cauecalil.personalfinance.application.dto.internal;
 import lombok.Builder;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 
 @Builder
 public record TransactionData(
-        String pluggyTransactionId,
+        String id,
         String description,
         BigDecimal amount,
         String type,
-        LocalDate date,
         String category,
+        Instant occurredAt,
         String currencyCode
 ) {}

@@ -6,10 +6,10 @@ import java.math.BigDecimal;
 
 @Builder
 public record AccountData(
-        String pluggyAccountId,
+        String id,
         String name,
         String type,
         String subtype,
         BigDecimal balance,
         String currencyCode
-) { }
+) {}

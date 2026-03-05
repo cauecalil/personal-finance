@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -18,8 +18,9 @@ public class TransactionJpaEntity {
     @Column(nullable = false, updatable = false)
     private String id;
 
-    @Column(nullable = false)
-    private String accountId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", nullable = false)
+    private AccountJpaEntity account;
 
     @Column(nullable = false)
     private String description;
@@ -30,10 +31,10 @@ public class TransactionJpaEntity {
     @Column(nullable = false, length = 10)
     private String type;
 
-    @Column(nullable = false)
-    private LocalDate date;
-
     private String category;
+
+    @Column(nullable = false)
+    private Instant occurredAt;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

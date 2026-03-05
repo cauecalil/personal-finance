@@ -18,7 +18,7 @@ import retrofit2.Response;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.*;
 
 @Component
@@ -145,23 +145,23 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
     }
 
     private AccountData toAccountData(Account account) {
-        return new AccountData(
-                account.getId(),
-                account.getName(),
-                account.getType(),
-                account.getSubtype(),
-                BigDecimal.valueOf(account.getBalance()),
-                account.getCurrencyCode()
-        );
+        return AccountData.builder()
+                .id(account.getId())
+                .name(account.getName())
+                .type(account.getType())
+                .subtype(account.getSubtype())
+                .balance(BigDecimal.valueOf(account.getBalance()))
+                .currencyCode(account.getCurrencyCode())
+                .build();
     }
 
     private TransactionData toTransactionData(Transaction transaction) {
         return TransactionData.builder()
-                .pluggyTransactionId(transaction.getId())
+                .id(transaction.getId())
                 .description(transaction.getDescription())
                 .amount(BigDecimal.valueOf(transaction.getAmount()))
                 .type(transaction.getType().name())
-                .date(LocalDate.parse(transaction.getDate()))
+                .occurredAt(Instant.parse(transaction.getDate()))
                 .category(transaction.getCategory())
                 .currencyCode(transaction.getCurrencyCode())
                 .build();
