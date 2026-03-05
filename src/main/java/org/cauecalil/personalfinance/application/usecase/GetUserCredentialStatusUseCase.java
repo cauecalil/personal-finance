@@ -6,17 +6,15 @@ import org.cauecalil.personalfinance.domain.model.UserCredential;
 import org.cauecalil.personalfinance.domain.repository.UserCredentialRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class GetUserCredentialStatusUseCase {
     private final UserCredentialRepository userCredentialRepository;
 
     public GetUserCredentialStatusResponse execute() {
-        Optional<UserCredential> userCredential = userCredentialRepository.findFirst();
+        UserCredential userCredential = userCredentialRepository.findFirst().orElse(null);
 
-        if (userCredential.isEmpty()) {
+        if (userCredential == null) {
             return GetUserCredentialStatusResponse.builder()
                     .configured(false)
                     .lastSyncAt(null)
@@ -25,7 +23,7 @@ public class GetUserCredentialStatusUseCase {
 
         return GetUserCredentialStatusResponse.builder()
                 .configured(true)
-                .lastSyncAt(userCredential.get().getLastSyncAt())
+                .lastSyncAt(userCredential.getLastSyncAt())
                 .build();
     }
 }

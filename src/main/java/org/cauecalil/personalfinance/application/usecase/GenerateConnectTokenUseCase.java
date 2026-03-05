@@ -8,8 +8,6 @@ import org.cauecalil.personalfinance.domain.model.UserCredential;
 import org.cauecalil.personalfinance.domain.repository.UserCredentialRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class GenerateConnectTokenUseCase {
@@ -17,13 +15,10 @@ public class GenerateConnectTokenUseCase {
     private final FinancialGateway financialGateway;
 
     public GenerateConnectTokenResponse execute(String itemId) {
-        Optional<UserCredential> userCredential = userCredentialRepository.findFirst();
+        UserCredential userCredential = userCredentialRepository.findFirst()
+                .orElseThrow(UserCredentialNotFoundException::new);
 
-        if (userCredential.isEmpty()) {
-            throw new UserCredentialNotFoundException();
-        }
-
-        String connectToken = financialGateway.createConnectionToken(userCredential.get(), itemId);
+        String connectToken = financialGateway.createConnectionToken(userCredential, itemId);
 
         return GenerateConnectTokenResponse.builder()
                 .connectToken(connectToken)
