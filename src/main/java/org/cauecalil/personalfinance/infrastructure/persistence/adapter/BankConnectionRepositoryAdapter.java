@@ -8,6 +8,7 @@ import org.cauecalil.personalfinance.infrastructure.persistence.mapper.BankConne
 import org.cauecalil.personalfinance.infrastructure.persistence.repository.BankConnectionJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -28,7 +29,22 @@ public class BankConnectionRepositoryAdapter implements BankConnectionRepository
     }
 
     @Override
-    public void delete(Long id) {
+    public List<BankConnection> findAll() {
+        return bankConnectionJpaRepository.findAll().stream().map(BankConnectionMapper::toDomain).toList();
+    }
+
+    @Override
+    public boolean existsById(Long id) {
+        return bankConnectionJpaRepository.existsById(id);
+    }
+
+    @Override
+    public boolean existsByItemId(String itemId) {
+        return bankConnectionJpaRepository.existsByItemId(itemId);
+    }
+
+    @Override
+    public void deleteById(Long id) {
         bankConnectionJpaRepository.deleteById(id);
     }
 }

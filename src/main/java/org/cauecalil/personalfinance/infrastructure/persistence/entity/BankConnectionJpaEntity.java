@@ -25,7 +25,6 @@ public class BankConnectionJpaEntity {
     @Column(nullable = false, length = 20)
     private String status;
 
-    @Column(nullable = false)
     private LocalDateTime lastSyncAt;
 
     @Column(nullable = false)
