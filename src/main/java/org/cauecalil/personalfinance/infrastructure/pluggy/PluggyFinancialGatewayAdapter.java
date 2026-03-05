@@ -1,14 +1,25 @@
 package org.cauecalil.personalfinance.infrastructure.pluggy;
 
+import ai.pluggy.client.PluggyClient;
+import ai.pluggy.client.response.Account;
+import ai.pluggy.client.response.AccountsResponse;
+import ai.pluggy.client.response.Transaction;
+import ai.pluggy.client.response.TransactionsResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.cauecalil.personalfinance.application.dto.internal.AccountData;
+import org.cauecalil.personalfinance.application.dto.internal.TransactionData;
 import org.cauecalil.personalfinance.application.port.FinancialGateway;
+import org.cauecalil.personalfinance.domain.model.BankConnection;
 import org.cauecalil.personalfinance.domain.model.UserCredential;
 import org.cauecalil.personalfinance.infrastructure.exception.PluggyAuthException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import retrofit2.Response;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.*;
 
 @Component
 @Slf4j
@@ -69,5 +80,90 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
         }
 
         return (String) tokenResponse.get("accessToken");
+    }
+
+    @Override
+    public List<AccountData> fetchAccounts(UserCredential userCredential, BankConnection bankConnection) {
+        log.debug("Fetching accounts for bank: {}", bankConnection.getBankName());
+
+        PluggyClient client = buildClient(userCredential);
+
+        try {
+            Response<AccountsResponse> response = client.service()
+                    .getAccounts(bankConnection.getItemId())
+                    .execute();
+
+            if (!response.isSuccessful()) {
+                throw new PluggyAuthException("Failed to fetch accounts for '%s'. HTTP %d".formatted(bankConnection.getBankName(), response.code()));
+            }
+
+            return Optional.ofNullable(response.body())
+                    .map(AccountsResponse::getResults)
+                    .orElse(Collections.emptyList())
+                    .stream()
+                    .map(this::toAccountData)
+                    .toList();
+        } catch (IOException e) {
+            throw new PluggyAuthException("Network error fetching accounts for '%s': %s".formatted(bankConnection.getBankName(), e.getMessage()), e);
+        }
+    }
+
+    @Override
+    public List<TransactionData> fetchTransactions(UserCredential credential, String accountId) {
+        log.debug("Fetching transactions for account: {}", accountId);
+
+        PluggyClient client = buildClient(credential);
+
+        try {
+            Response<TransactionsResponse> response = client.service()
+                    .getTransactions(accountId)
+                    .execute();
+
+            if (!response.isSuccessful()) {
+                throw new PluggyAuthException("Failed to fetch transactions. HTTP %d".formatted(response.code()));
+            }
+
+            return Optional.ofNullable(response.body())
+                    .map(TransactionsResponse::getResults)
+                    .orElse(Collections.emptyList())
+                    .stream()
+                    .map(this::toTransactionData)
+                    .toList();
+        } catch (IOException e) {
+            throw new PluggyAuthException("Network error fetching transactions: " + e.getMessage(), e);
+        }
+    }
+
+    private PluggyClient buildClient(UserCredential credential) {
+        try {
+            return PluggyClient.builder()
+                    .clientIdAndSecret(credential.getClientId(), credential.getClientSecret())
+                    .build();
+        } catch (Exception e) {
+            throw new PluggyAuthException("Invalid Pluggy credentials. Please check your Client ID and Client Secret.", e);
+        }
+    }
+
+    private AccountData toAccountData(Account account) {
+        return new AccountData(
+                account.getId(),
+                account.getName(),
+                account.getType(),
+                account.getSubtype(),
+                BigDecimal.valueOf(account.getBalance()),
+                account.getCurrencyCode()
+        );
+    }
+
+    private TransactionData toTransactionData(Transaction transaction) {
+        return TransactionData.builder()
+                .pluggyTransactionId(transaction.getId())
+                .description(transaction.getDescription())
+                .amount(BigDecimal.valueOf(transaction.getAmount()))
+                .type(transaction.getType().name())
+                .date(LocalDate.parse(transaction.getDate()))
+                .category(transaction.getCategory())
+                .currencyCode(transaction.getCurrencyCode())
+                .build();
     }
 }
