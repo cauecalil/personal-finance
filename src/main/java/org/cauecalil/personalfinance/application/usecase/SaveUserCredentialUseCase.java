@@ -18,8 +18,8 @@ public class SaveUserCredentialUseCase {
 
         UserCredential credential = UserCredential.builder()
                 .id(existingId)
-                .clientId(request.clientId().toString())
-                .clientSecret(request.clientSecret().toString())
+                .clientId(request.clientId())
+                .clientSecret(request.clientSecret())
                 .build();
 
         userCredentialRepository.save(credential);
