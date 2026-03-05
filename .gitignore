@@ -1,6 +1,7 @@
 # BACKEND
 target/
 !.mvn/wrapper/maven-wrapper.jar
+*.db
 
 # FRONTEND
 frontend/

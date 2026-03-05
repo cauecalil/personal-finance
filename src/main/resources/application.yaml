@@ -2,16 +2,15 @@ spring:
   application:
     name: personal-finance
   datasource:
-    url: jdbc:sqlite:finance.db
-    driver-class-name: org.sqlite.JDBC
+    url: jdbc:h2:file:./finance;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
   jpa:
-    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
     show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
 
 server:
   port: 8080
