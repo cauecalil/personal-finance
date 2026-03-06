@@ -6,7 +6,6 @@ import org.cauecalil.personalfinance.application.port.FinancialGateway;
 import org.cauecalil.personalfinance.domain.model.Account;
 import org.cauecalil.personalfinance.domain.model.Transaction;
 import org.cauecalil.personalfinance.domain.model.UserCredential;
-import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
 import org.cauecalil.personalfinance.domain.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 
@@ -37,10 +36,12 @@ public class SyncTransactionsUseCase {
                         .id(transactionData.id())
                         .accountId(account.getId())
                         .description(transactionData.description())
+                        .currency(transactionData.currency())
                         .amount(transactionData.amount())
-                        .type(TransactionType.from(transactionData.type(), transactionData.amount()))
-                        .occurredAt(transactionData.occurredAt())
+                        .amountInAccountCurrency(transactionData.amountInAccountCurrency())
+                        .type(transactionData.type())
                         .category(transactionData.category())
+                        .occurredAt(transactionData.occurredAt())
                         .build();
 
                 transactionRepository.save(transaction);

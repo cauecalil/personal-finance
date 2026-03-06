@@ -14,7 +14,9 @@ public class Transaction {
     private String id;
     private String accountId;
     private String description;
+    private String currency;
     private BigDecimal amount;
+    private BigDecimal amountInAccountCurrency;
     private TransactionType type;
     private String category;
     private Instant occurredAt;

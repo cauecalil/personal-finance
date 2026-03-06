@@ -11,6 +11,7 @@ import org.cauecalil.personalfinance.application.dto.internal.TransactionData;
 import org.cauecalil.personalfinance.application.port.FinancialGateway;
 import org.cauecalil.personalfinance.domain.model.BankConnection;
 import org.cauecalil.personalfinance.domain.model.UserCredential;
+import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
 import org.cauecalil.personalfinance.infrastructure.exception.PluggyAuthException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -160,14 +161,17 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
     }
 
     private TransactionData toTransactionData(Transaction transaction) {
+        var amountInAccountCurrency = transaction.getAmountInAccountCurrency() == null ? null : BigDecimal.valueOf(transaction.getAmountInAccountCurrency());
+
         return TransactionData.builder()
                 .id(transaction.getId())
                 .description(transaction.getDescription())
+                .currency(transaction.getCurrencyCode())
                 .amount(BigDecimal.valueOf(transaction.getAmount()))
-                .type(transaction.getType().name())
-                .occurredAt(Instant.parse(transaction.getDate()))
+                .amountInAccountCurrency(amountInAccountCurrency)
+                .type(TransactionType.from(transaction.getType().name(), BigDecimal.valueOf(transaction.getAmount())))
                 .category(transaction.getCategory())
-                .currencyCode(transaction.getCurrencyCode())
+                .occurredAt(Instant.parse(transaction.getDate()))
                 .build();
     }
 }

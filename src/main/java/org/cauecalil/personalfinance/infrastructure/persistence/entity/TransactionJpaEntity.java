@@ -2,6 +2,7 @@ package org.cauecalil.personalfinance.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -25,11 +26,18 @@ public class TransactionJpaEntity {
     @Column(nullable = false)
     private String description;
 
+    @Column(nullable = false, length = 3)
+    private String currency;
+
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
-    @Column(nullable = false, length = 10)
-    private String type;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal amountInAccountCurrency;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TransactionType type;
 
     private String category;
 
