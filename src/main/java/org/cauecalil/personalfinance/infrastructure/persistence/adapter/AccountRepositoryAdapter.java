@@ -8,6 +8,7 @@ import org.cauecalil.personalfinance.infrastructure.persistence.mapper.AccountMa
 import org.cauecalil.personalfinance.infrastructure.persistence.repository.AccountJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -25,6 +26,13 @@ public class AccountRepositoryAdapter implements AccountRepository {
     @Override
     public Optional<Account> findById(String id) {
         return accountJpaRepository.findById(id).map(AccountMapper::toDomain);
+    }
+
+    @Override
+    public List<Account> findAll() {
+        return accountJpaRepository.findAll().stream()
+                .map(AccountMapper::toDomain)
+                .toList();
     }
 
     @Override
