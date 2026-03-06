@@ -8,6 +8,8 @@ import org.cauecalil.personalfinance.infrastructure.persistence.mapper.Transacti
 import org.cauecalil.personalfinance.infrastructure.persistence.repository.TransactionJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -25,6 +27,14 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     @Override
     public Optional<Transaction> findById(String id) {
         return transactionJpaRepository.findById(id).map(TransactionMapper::toDomain);
+    }
+
+    @Override
+    public List<Transaction> findByAccountIdAndOccurredAtBetween(String accountId, Instant from, Instant to) {
+        return transactionJpaRepository.findByAccountIdAndOccurredAtBetween(accountId, from, to)
+                .stream()
+                .map(TransactionMapper::toDomain)
+                .toList();
     }
 
     @Override
