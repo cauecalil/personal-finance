@@ -15,13 +15,15 @@ public record AccountResponse(
         String currency
 ) {
     public static AccountResponse from(Account account) {
+        String name = account.getMarketingName() == null ? account.getName() : account.getMarketingName();
+
         return AccountResponse.builder()
                 .id(account.getId())
-                .name(account.getName())
-                .type(account.getType())
-                .subtype(account.getSubtype())
+                .name(name)
+                .type(account.getType().name())
+                .subtype(account.getSubType().name())
                 .balance(account.getBalance())
-                .currency(account.getCurrency().name())
+                .currency(account.getCurrency())
                 .build();
     }
 }

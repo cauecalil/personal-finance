@@ -1,8 +1,6 @@
 package org.cauecalil.personalfinance.domain.model.valueobject;
 
-public enum Currency {
-    BRL,
-    USD,
-    EUR,
-    GBP
+public enum AccountType {
+    BANK,
+    CREDIT
 }

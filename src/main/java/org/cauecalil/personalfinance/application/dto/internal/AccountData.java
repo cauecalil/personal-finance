@@ -8,8 +8,12 @@ import java.math.BigDecimal;
 public record AccountData(
         String id,
         String name,
+        String marketingName,
         String type,
-        String subtype,
+        String subType,
+        String number,
+        String owner,
+        String taxNumber,
         BigDecimal balance,
-        String currencyCode
+        String currency
 ) {}

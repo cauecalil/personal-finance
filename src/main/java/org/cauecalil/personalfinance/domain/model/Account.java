@@ -1,7 +1,8 @@
 package org.cauecalil.personalfinance.domain.model;
 
 import lombok.*;
-import org.cauecalil.personalfinance.domain.model.valueobject.Currency;
+import org.cauecalil.personalfinance.domain.model.valueobject.AccountSubType;
+import org.cauecalil.personalfinance.domain.model.valueobject.AccountType;
 
 import java.math.BigDecimal;
 
@@ -13,10 +14,14 @@ public class Account {
     private String id;
     private Long bankConnectionId;
     private String name;
-    private String type;
-    private String subtype;
+    private String marketingName;
+    private AccountType type;
+    private AccountSubType subType;
+    private String number;
+    private String owner;
+    private String taxNumber;
     private BigDecimal balance;
-    private Currency currency;
+    private String currency;
 
     public void updateBalance(BigDecimal amount) {
         this.balance = amount;

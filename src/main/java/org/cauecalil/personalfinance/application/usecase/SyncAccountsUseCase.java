@@ -6,7 +6,8 @@ import org.cauecalil.personalfinance.application.port.FinancialGateway;
 import org.cauecalil.personalfinance.domain.model.Account;
 import org.cauecalil.personalfinance.domain.model.BankConnection;
 import org.cauecalil.personalfinance.domain.model.UserCredential;
-import org.cauecalil.personalfinance.domain.model.valueobject.Currency;
+import org.cauecalil.personalfinance.domain.model.valueobject.AccountSubType;
+import org.cauecalil.personalfinance.domain.model.valueobject.AccountType;
 import org.cauecalil.personalfinance.domain.repository.AccountRepository;
 import org.springframework.stereotype.Service;
 
@@ -35,10 +36,14 @@ public class SyncAccountsUseCase {
                                 .id(accountData.id())
                                 .bankConnectionId(bankConnection.getId())
                                 .name(accountData.name())
-                                .type(accountData.type())
-                                .subtype(accountData.subtype())
+                                .marketingName(accountData.marketingName())
+                                .type(AccountType.valueOf(accountData.type()))
+                                .subType(AccountSubType.valueOf(accountData.subType()))
+                                .number(accountData.number())
+                                .owner(accountData.owner())
+                                .taxNumber(accountData.taxNumber())
                                 .balance(accountData.balance())
-                                .currency(Currency.valueOf(accountData.currencyCode()))
+                                .currency(accountData.currency())
                                 .build();
 
                         return accountRepository.save(newAccount);

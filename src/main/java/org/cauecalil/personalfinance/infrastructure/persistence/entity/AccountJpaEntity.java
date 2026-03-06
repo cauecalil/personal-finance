@@ -2,6 +2,8 @@ package org.cauecalil.personalfinance.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.cauecalil.personalfinance.domain.model.valueobject.AccountSubType;
+import org.cauecalil.personalfinance.domain.model.valueobject.AccountType;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -26,10 +28,22 @@ public class AccountJpaEntity {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    private String type;
+    private String marketingName;
 
-    private String subtype;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AccountType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AccountSubType subType;
+
+    @Column(nullable = false)
+    private String number;
+
+    private String owner;
+
+    private String taxNumber;
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance;

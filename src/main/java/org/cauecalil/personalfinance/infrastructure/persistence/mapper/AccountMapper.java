@@ -1,7 +1,6 @@
 package org.cauecalil.personalfinance.infrastructure.persistence.mapper;
 
 import org.cauecalil.personalfinance.domain.model.Account;
-import org.cauecalil.personalfinance.domain.model.valueobject.Currency;
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.AccountJpaEntity;
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.BankConnectionJpaEntity;
 
@@ -15,10 +14,14 @@ public class AccountMapper {
                 .id(account.getId())
                 .bankConnection(bankConnectionEntity)
                 .name(account.getName())
+                .marketingName(account.getMarketingName())
                 .type(account.getType())
-                .subtype(account.getSubtype())
+                .subType(account.getSubType())
+                .number(account.getNumber())
+                .owner(account.getOwner())
+                .taxNumber(account.getTaxNumber())
                 .balance(account.getBalance())
-                .currency(account.getCurrency().name())
+                .currency(account.getCurrency())
                 .build();
     }
 
@@ -27,10 +30,14 @@ public class AccountMapper {
                 .id(entity.getId())
                 .bankConnectionId(entity.getBankConnection().getId())
                 .name(entity.getName())
+                .marketingName(entity.getMarketingName())
                 .type(entity.getType())
-                .subtype(entity.getSubtype())
+                .subType(entity.getSubType())
+                .number(entity.getNumber())
+                .owner(entity.getOwner())
+                .taxNumber(entity.getTaxNumber())
                 .balance(entity.getBalance())
-                .currency(Currency.valueOf(entity.getCurrency()))
+                .currency(entity.getCurrency())
                 .build();
     }
 }

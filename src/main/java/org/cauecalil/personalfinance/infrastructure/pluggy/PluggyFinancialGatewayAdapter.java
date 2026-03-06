@@ -148,10 +148,14 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
         return AccountData.builder()
                 .id(account.getId())
                 .name(account.getName())
+                .marketingName(account.getMarketingName())
                 .type(account.getType())
-                .subtype(account.getSubtype())
+                .subType(account.getSubtype())
+                .number(account.getNumber())
+                .owner(account.getOwner())
+                .taxNumber(account.getTaxNumber())
                 .balance(BigDecimal.valueOf(account.getBalance()))
-                .currencyCode(account.getCurrencyCode())
+                .currency(account.getCurrencyCode())
                 .build();
     }
 
