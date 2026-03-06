@@ -19,8 +19,6 @@ public class AccountMapper {
                 .subtype(account.getSubtype())
                 .balance(account.getBalance())
                 .currency(account.getCurrency().name())
-                .createdAt(account.getCreatedAt())
-                .updatedAt(account.getUpdatedAt())
                 .build();
     }
 
@@ -33,8 +31,6 @@ public class AccountMapper {
                 .subtype(entity.getSubtype())
                 .balance(entity.getBalance())
                 .currency(Currency.valueOf(entity.getCurrency()))
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
                 .build();
     }
 }

@@ -19,7 +19,6 @@ public class TransactionMapper {
                 .type(transaction.getType().name())
                 .category(transaction.getCategory())
                 .occurredAt(transaction.getOccurredAt())
-                .createdAt(transaction.getCreatedAt())
                 .build();
     }
 
@@ -32,7 +31,6 @@ public class TransactionMapper {
                 .type(TransactionType.valueOf(entity.getType()))
                 .category(entity.getCategory())
                 .occurredAt(entity.getOccurredAt())
-                .createdAt(entity.getCreatedAt())
                 .build();
     }
 }

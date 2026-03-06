@@ -32,7 +32,6 @@ public class AddBankConnectionUseCase {
                 .bankName(savedBankConnection.getBankName())
                 .status(savedBankConnection.getStatus())
                 .lastSyncAt(savedBankConnection.getLastSyncAt())
-                .createdAt(savedBankConnection.getCreatedAt())
                 .build();
     }
 }

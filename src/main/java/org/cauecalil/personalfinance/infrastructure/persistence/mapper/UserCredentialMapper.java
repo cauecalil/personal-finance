@@ -9,7 +9,6 @@ public class UserCredentialMapper {
                 .id(userCredential.getId())
                 .clientId(userCredential.getClientId())
                 .clientSecret(userCredential.getClientSecret())
-                .createdAt(userCredential.getCreatedAt())
                 .lastSyncAt(userCredential.getLastSyncAt())
                 .build();
     }
@@ -19,7 +18,6 @@ public class UserCredentialMapper {
                 .id(entity.getId())
                 .clientId(entity.getClientId())
                 .clientSecret(entity.getClientSecret())
-                .createdAt(entity.getCreatedAt())
                 .lastSyncAt(entity.getLastSyncAt())
                 .build();
     }

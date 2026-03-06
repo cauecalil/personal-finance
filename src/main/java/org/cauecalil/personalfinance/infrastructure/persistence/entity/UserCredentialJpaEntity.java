@@ -2,8 +2,9 @@ package org.cauecalil.personalfinance.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "user_credentials")
@@ -22,8 +23,9 @@ public class UserCredentialJpaEntity {
     @Column(nullable = false)
     private String clientSecret;
 
-    private LocalDateTime lastSyncAt;
+    private Instant lastSyncAt;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
 }

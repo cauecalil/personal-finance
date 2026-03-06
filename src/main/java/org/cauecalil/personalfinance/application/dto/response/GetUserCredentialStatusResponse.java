@@ -2,10 +2,10 @@ package org.cauecalil.personalfinance.application.dto.response;
 
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Builder
 public record GetUserCredentialStatusResponse(
      boolean configured,
-     LocalDateTime lastSyncAt
+     Instant lastSyncAt
 ) {}

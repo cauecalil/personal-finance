@@ -2,7 +2,7 @@ package org.cauecalil.personalfinance.domain.model;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Builder
@@ -12,12 +12,9 @@ public class UserCredential {
     private Long id;
     private String clientId;
     private String clientSecret;
-    private LocalDateTime lastSyncAt;
-
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant lastSyncAt;
 
     public void markSynced() {
-        this.lastSyncAt = LocalDateTime.now();
+        this.lastSyncAt = Instant.now();
     }
 }

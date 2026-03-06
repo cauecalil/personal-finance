@@ -2,7 +2,7 @@ package org.cauecalil.personalfinance.domain.model;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Builder
@@ -13,14 +13,10 @@ public class BankConnection {
     private String itemId;
     private String bankName;
     private String status;
-
-    private LocalDateTime lastSyncAt;
-
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant lastSyncAt;
 
     public void markSynced(String status) {
-        this.lastSyncAt = LocalDateTime.now();
+        this.lastSyncAt = Instant.now();
         this.status = status;
     }
 }

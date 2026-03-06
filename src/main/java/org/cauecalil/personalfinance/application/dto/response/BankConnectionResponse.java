@@ -3,7 +3,7 @@ package org.cauecalil.personalfinance.application.dto.response;
 import lombok.Builder;
 import org.cauecalil.personalfinance.domain.model.BankConnection;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Builder
 public record BankConnectionResponse(
@@ -11,8 +11,7 @@ public record BankConnectionResponse(
         String itemId,
         String bankName,
         String status,
-        LocalDateTime lastSyncAt,
-        LocalDateTime createdAt
+        Instant lastSyncAt
 ) {
     public static BankConnectionResponse from(BankConnection bankConnection) {
         return BankConnectionResponse.builder()
@@ -21,7 +20,6 @@ public record BankConnectionResponse(
                 .bankName(bankConnection.getBankName())
                 .status(bankConnection.getStatus())
                 .lastSyncAt(bankConnection.getLastSyncAt())
-                .createdAt(bankConnection.getCreatedAt())
                 .build();
     }
 }

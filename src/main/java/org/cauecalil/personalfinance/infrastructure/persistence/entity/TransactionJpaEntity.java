@@ -2,10 +2,10 @@ package org.cauecalil.personalfinance.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
@@ -36,6 +36,7 @@ public class TransactionJpaEntity {
     @Column(nullable = false)
     private Instant occurredAt;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
 }

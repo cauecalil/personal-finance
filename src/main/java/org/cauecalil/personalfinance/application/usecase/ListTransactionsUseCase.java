@@ -8,30 +8,23 @@ import org.cauecalil.personalfinance.domain.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ListTransactionsUseCase {
     private final TransactionRepository transactionRepository;
-    private final ZoneId zoneId;
 
-    public List<TransactionResponse> execute(String accountId, LocalDate from, LocalDate to) {
+    public List<TransactionResponse> execute(String accountId, Instant from, Instant to) {
         if (from.isAfter(to)) {
             throw new ListTransactionsFromDateAfterToDateException();
         }
 
-        Instant startInstant = from.atStartOfDay(zoneId).toInstant();
-        Instant endInstant = to.atTime(LocalTime.MAX).atZone(zoneId).toInstant();
-
-        List<Transaction> transactions = transactionRepository.findByAccountIdAndOccurredAtBetween(accountId, startInstant, endInstant);
+        List<Transaction> transactions = transactionRepository.findByAccountIdAndOccurredAtBetween(accountId, from, to);
 
         return transactions
                 .stream()
-                .map(transaction -> TransactionResponse.from(transaction, zoneId))
+                .map(TransactionResponse::from)
                 .toList();
     }
 }

@@ -11,7 +11,6 @@ public class BankConnectionMapper {
                 .bankName(bankConnection.getBankName())
                 .status(bankConnection.getStatus())
                 .lastSyncAt(bankConnection.getLastSyncAt())
-                .createdAt(bankConnection.getCreatedAt())
                 .build();
     }
 
@@ -22,7 +21,6 @@ public class BankConnectionMapper {
                 .bankName(entity.getBankName())
                 .status(entity.getStatus())
                 .lastSyncAt(entity.getLastSyncAt())
-                .createdAt(entity.getCreatedAt())
                 .build();
     }
 }

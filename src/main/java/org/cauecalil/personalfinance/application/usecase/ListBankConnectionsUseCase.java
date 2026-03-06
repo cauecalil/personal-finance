@@ -16,6 +16,9 @@ public class ListBankConnectionsUseCase {
     public List<BankConnectionResponse> execute() {
         List<BankConnection> bankConnections = bankConnectionRepository.findAll();
 
-        return bankConnections.stream().map(BankConnectionResponse::from).toList();
+        return bankConnections
+                .stream()
+                .map(BankConnectionResponse::from)
+                .toList();
     }
 }

@@ -2,8 +2,9 @@ package org.cauecalil.personalfinance.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "bank_connections")
@@ -25,8 +26,9 @@ public class BankConnectionJpaEntity {
     @Column(nullable = false, length = 20)
     private String status;
 
-    private LocalDateTime lastSyncAt;
+    private Instant lastSyncAt;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
 }

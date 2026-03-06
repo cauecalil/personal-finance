@@ -4,8 +4,7 @@ import lombok.Builder;
 import org.cauecalil.personalfinance.domain.model.Transaction;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
 
 @Builder
 public record TransactionResponse(
@@ -13,17 +12,17 @@ public record TransactionResponse(
         String description,
         BigDecimal amount,
         String type,
-        String date,
+        Instant date,
         String category,
         String currency
 ) {
-    public static TransactionResponse from(Transaction transaction, ZoneId zoneId) {
+    public static TransactionResponse from(Transaction transaction) {
         return TransactionResponse.builder()
                 .id(transaction.getId())
                 .description(transaction.getDescription())
                 .amount(transaction.getAmount())
                 .type(transaction.getType().name())
-                .date(LocalDateTime.ofInstant(transaction.getOccurredAt(), zoneId).toString())
+                .date(transaction.getOccurredAt())
                 .category(transaction.getCategory())
                 .currency("BRL")
                 .build();

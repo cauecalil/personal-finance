@@ -4,7 +4,6 @@ import lombok.*;
 import org.cauecalil.personalfinance.domain.model.valueobject.Currency;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -19,14 +18,7 @@ public class Account {
     private BigDecimal balance;
     private Currency currency;
 
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Builder.Default
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
     public void updateBalance(BigDecimal amount) {
         this.balance = amount;
-        this.updatedAt = LocalDateTime.now();
     }
 }

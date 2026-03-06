@@ -5,7 +5,6 @@ import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -19,7 +18,4 @@ public class Transaction {
     private TransactionType type;
     private String category;
     private Instant occurredAt;
-
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
 }
