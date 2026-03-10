@@ -18,10 +18,35 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
 public class PluggyFinancialGatewayAdapter implements FinancialGateway {
+    private final Map<String, PluggyClient> clientCache = new ConcurrentHashMap<>();
+
+    private PluggyClient buildClient(UserCredential credential) {
+        String cacheKey = credential.getClientId() + ":" + credential.getClientSecret();
+
+        return clientCache.computeIfAbsent(cacheKey, key -> {
+            log.debug("Building new PluggyClient for credentials");
+            try {
+                return PluggyClient.builder()
+                        .clientIdAndSecret(credential.getClientId(), credential.getClientSecret())
+                        .build();
+            } catch (Exception e) {
+                throw new PluggyAuthException("Invalid Pluggy credentials. Please check your Client ID and Client Secret.", e);
+            }
+        });
+    }
+
+    @Override
+    public void invalidateCachedCredential(UserCredential credential) {
+        String cacheKey = credential.getClientId() + ":" + credential.getClientSecret();
+        clientCache.remove(cacheKey);
+        log.debug("PluggyClient cache invalidated");
+    }
+
     @Override
     public String createConnectionToken(UserCredential userCredential, String itemId) {
         log.debug("Requesting Pluggy Connect Token (updateMode: {})", itemId != null);
@@ -148,16 +173,6 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
                     .toList();
         } catch (IOException e) {
             throw new PluggyAuthException("Network error fetching transactions: " + e.getMessage(), e);
-        }
-    }
-
-    private PluggyClient buildClient(UserCredential credential) {
-        try {
-            return PluggyClient.builder()
-                    .clientIdAndSecret(credential.getClientId(), credential.getClientSecret())
-                    .build();
-        } catch (Exception e) {
-            throw new PluggyAuthException("Invalid Pluggy credentials. Please check your Client ID and Client Secret.", e);
         }
     }
 

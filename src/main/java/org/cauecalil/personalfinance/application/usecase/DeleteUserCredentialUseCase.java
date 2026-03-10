@@ -21,6 +21,8 @@ public class DeleteUserCredentialUseCase {
     public void execute() {
         UserCredential userCredential = userCredentialRepository.findFirst().orElseThrow(UserCredentialNotFoundException::new);
 
+        financialGateway.invalidateCachedCredential(userCredential);
+
         List<BankConnection> bankConnections = bankConnectionRepository.findAll();
 
         bankConnections.forEach(

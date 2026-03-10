@@ -8,6 +8,7 @@ import org.cauecalil.personalfinance.domain.model.UserCredential;
 import java.util.List;
 
 public interface FinancialGateway {
+    void invalidateCachedCredential(UserCredential credential);
     String createConnectionToken(UserCredential userCredential, String itemId);
     void removeConnection(UserCredential credential, String itemId);
     List<AccountData> fetchAccounts(UserCredential userCredential, BankConnection bankConnection);
