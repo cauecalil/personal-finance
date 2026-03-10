@@ -10,21 +10,23 @@ import java.time.Instant;
 public record TransactionResponse(
         String id,
         String description,
+        String currency,
         BigDecimal amount,
+        BigDecimal amountInAccountCurrency,
         String type,
         Instant date,
-        String category,
-        String currency
+        String category
 ) {
     public static TransactionResponse from(Transaction transaction) {
         return TransactionResponse.builder()
                 .id(transaction.getId())
                 .description(transaction.getDescription())
+                .currency(transaction.getCurrency())
                 .amount(transaction.getAmount())
+                .amountInAccountCurrency(transaction.getAmountInAccountCurrency())
                 .type(transaction.getType().name())
                 .date(transaction.getOccurredAt())
                 .category(transaction.getCategory())
-                .currency("BRL")
                 .build();
     }
 }
