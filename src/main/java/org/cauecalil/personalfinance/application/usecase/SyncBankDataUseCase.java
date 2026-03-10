@@ -25,7 +25,7 @@ public class SyncBankDataUseCase {
     private final SyncTransactionsUseCase syncTransactionsUseCase;
 
     public SyncBankDataResponse execute(boolean fullSync) {
-        UserCredential userCredential = userCredentialRepository.findFirst()
+        UserCredential userCredential = userCredentialRepository.find()
                 .orElseThrow(UserCredentialNotFoundException::new);
 
         List<BankConnection> bankConnections = bankConnectionRepository.findAll();

@@ -15,7 +15,7 @@ public class GenerateConnectTokenUseCase {
     private final FinancialGateway financialGateway;
 
     public GenerateConnectTokenResponse execute(String itemId) {
-        UserCredential userCredential = userCredentialRepository.findFirst()
+        UserCredential userCredential = userCredentialRepository.find()
                 .orElseThrow(UserCredentialNotFoundException::new);
 
         String connectToken = financialGateway.createConnectionToken(userCredential, itemId);

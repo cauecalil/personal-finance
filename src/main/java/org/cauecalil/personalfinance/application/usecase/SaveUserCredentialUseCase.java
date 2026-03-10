@@ -14,14 +14,9 @@ public class SaveUserCredentialUseCase {
     private final FinancialGateway financialGateway;
 
     public void execute(SaveUserCredentialRequest request) {
-        UserCredential existing = userCredentialRepository.findFirst().orElse(null);
-
-        if (existing != null) {
-            financialGateway.invalidateCachedCredential(existing);
-        }
+        userCredentialRepository.find().ifPresent(financialGateway::invalidateCachedCredential);
 
         UserCredential credential = UserCredential.builder()
-                .id(existing != null ? existing.getId() : null)
                 .clientId(request.clientId())
                 .clientSecret(request.clientSecret())
                 .build();

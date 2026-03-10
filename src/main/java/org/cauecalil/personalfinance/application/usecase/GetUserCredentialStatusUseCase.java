@@ -12,18 +12,16 @@ public class GetUserCredentialStatusUseCase {
     private final UserCredentialRepository userCredentialRepository;
 
     public GetUserCredentialStatusResponse execute() {
-        UserCredential userCredential = userCredentialRepository.findFirst().orElse(null);
+        UserCredential userCredential = userCredentialRepository.find().orElse(null);
 
         if (userCredential == null) {
             return GetUserCredentialStatusResponse.builder()
                     .configured(false)
-                    .lastSyncAt(null)
                     .build();
         }
 
         return GetUserCredentialStatusResponse.builder()
                 .configured(true)
-                .lastSyncAt(userCredential.getLastSyncAt())
                 .build();
     }
 }
