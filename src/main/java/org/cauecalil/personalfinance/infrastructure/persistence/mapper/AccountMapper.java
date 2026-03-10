@@ -5,14 +5,10 @@ import org.cauecalil.personalfinance.infrastructure.persistence.entity.AccountJp
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.BankConnectionJpaEntity;
 
 public class AccountMapper {
-    public static AccountJpaEntity toEntity(Account account) {
-        BankConnectionJpaEntity bankConnectionEntity = BankConnectionJpaEntity.builder()
-                .id(account.getBankConnectionId())
-                .build();
-
+    public static AccountJpaEntity toEntity(Account account, BankConnectionJpaEntity bankConnection) {
         return AccountJpaEntity.builder()
                 .id(account.getId())
-                .bankConnection(bankConnectionEntity)
+                .bankConnection(bankConnection)
                 .name(account.getName())
                 .marketingName(account.getMarketingName())
                 .type(account.getType())

@@ -4,8 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.cauecalil.personalfinance.domain.model.Account;
 import org.cauecalil.personalfinance.domain.repository.AccountRepository;
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.AccountJpaEntity;
+import org.cauecalil.personalfinance.infrastructure.persistence.entity.BankConnectionJpaEntity;
 import org.cauecalil.personalfinance.infrastructure.persistence.mapper.AccountMapper;
 import org.cauecalil.personalfinance.infrastructure.persistence.repository.AccountJpaRepository;
+import org.cauecalil.personalfinance.infrastructure.persistence.repository.BankConnectionJpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,10 +17,12 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AccountRepositoryAdapter implements AccountRepository {
     private final AccountJpaRepository accountJpaRepository;
+    private final BankConnectionJpaRepository bankConnectionJpaRepository;
 
     @Override
     public Account save(Account account) {
-        AccountJpaEntity entity = AccountMapper.toEntity(account);
+        BankConnectionJpaEntity bankConnectionRef = bankConnectionJpaRepository.getReferenceById(account.getBankConnectionId());
+        AccountJpaEntity entity = AccountMapper.toEntity(account, bankConnectionRef);
         AccountJpaEntity saved = accountJpaRepository.save(entity);
         return AccountMapper.toDomain(saved);
     }
