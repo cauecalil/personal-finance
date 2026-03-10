@@ -2,6 +2,7 @@ package org.cauecalil.personalfinance.application.dto.response;
 
 import lombok.Builder;
 import org.cauecalil.personalfinance.domain.model.BankConnection;
+import org.cauecalil.personalfinance.domain.model.valueobject.BankConnectionStatus;
 
 import java.time.Instant;
 
@@ -10,7 +11,7 @@ public record BankConnectionResponse(
         Long id,
         String itemId,
         String bankName,
-        String status,
+        BankConnectionStatus status,
         Instant lastSyncAt
 ) {
     public static BankConnectionResponse from(BankConnection bankConnection) {

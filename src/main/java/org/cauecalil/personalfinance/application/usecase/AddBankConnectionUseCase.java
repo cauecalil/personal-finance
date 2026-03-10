@@ -5,6 +5,7 @@ import org.cauecalil.personalfinance.application.dto.request.AddBankConnectionRe
 import org.cauecalil.personalfinance.application.dto.response.BankConnectionResponse;
 import org.cauecalil.personalfinance.application.exception.BankConnectionAlreadyExistsException;
 import org.cauecalil.personalfinance.domain.model.BankConnection;
+import org.cauecalil.personalfinance.domain.model.valueobject.BankConnectionStatus;
 import org.cauecalil.personalfinance.domain.repository.BankConnectionRepository;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +22,7 @@ public class AddBankConnectionUseCase {
         BankConnection bankConnection = BankConnection.builder()
                 .itemId(request.itemId())
                 .bankName(request.bankName())
-                .status("PENDING")
+                .status(BankConnectionStatus.PENDING)
                 .build();
 
         BankConnection savedBankConnection = bankConnectionRepository.save(bankConnection);

@@ -7,6 +7,7 @@ import org.cauecalil.personalfinance.application.exception.UserCredentialNotFoun
 import org.cauecalil.personalfinance.domain.model.Account;
 import org.cauecalil.personalfinance.domain.model.BankConnection;
 import org.cauecalil.personalfinance.domain.model.UserCredential;
+import org.cauecalil.personalfinance.domain.model.valueobject.BankConnectionStatus;
 import org.cauecalil.personalfinance.domain.repository.BankConnectionRepository;
 import org.cauecalil.personalfinance.domain.repository.UserCredentialRepository;
 import org.springframework.stereotype.Service;
@@ -50,10 +51,10 @@ public class SyncBankDataUseCase {
                 List<Account> accounts = syncAccountsUseCase.execute(userCredential, bankConnection);
                 accountsSynced += accounts.size();
                 transactionsSynced += syncTransactionsUseCase.execute(userCredential, accounts, fullSync);
-                bankConnection.markSynced("UPDATED");
+                bankConnection.markSynced(BankConnectionStatus.UPDATED);
             } catch (Exception e) {
                 log.error("Failed to sync bank {}: {}", bankConnection.getBankName(), e.getMessage());
-                bankConnection.markSynced("ERROR");
+                bankConnection.markSynced(BankConnectionStatus.ERROR);
                 errors.add(bankConnection.getBankName());
             }
 

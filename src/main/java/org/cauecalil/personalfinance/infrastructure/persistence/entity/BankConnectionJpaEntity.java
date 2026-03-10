@@ -2,6 +2,7 @@ package org.cauecalil.personalfinance.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.cauecalil.personalfinance.domain.model.valueobject.BankConnectionStatus;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
@@ -23,8 +24,9 @@ public class BankConnectionJpaEntity {
     @Column(nullable = false)
     private String bankName;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String status;
+    private BankConnectionStatus status;
 
     private Instant lastSyncAt;
 

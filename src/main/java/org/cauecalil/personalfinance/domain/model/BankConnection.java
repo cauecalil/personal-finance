@@ -1,6 +1,7 @@
 package org.cauecalil.personalfinance.domain.model;
 
 import lombok.*;
+import org.cauecalil.personalfinance.domain.model.valueobject.BankConnectionStatus;
 
 import java.time.Instant;
 
@@ -12,10 +13,10 @@ public class BankConnection {
     private Long id;
     private String itemId;
     private String bankName;
-    private String status;
+    private BankConnectionStatus status;
     private Instant lastSyncAt;
 
-    public void markSynced(String status) {
+    public void markSynced(BankConnectionStatus status) {
         this.lastSyncAt = Instant.now();
         this.status = status;
     }
