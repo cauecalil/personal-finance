@@ -6,14 +6,10 @@ import org.cauecalil.personalfinance.infrastructure.persistence.entity.AccountJp
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.TransactionJpaEntity;
 
 public class TransactionMapper {
-    public static TransactionJpaEntity toEntity(Transaction transaction) {
-        AccountJpaEntity accountEntity = AccountJpaEntity.builder()
-                .id(transaction.getAccountId())
-                .build();
-
+    public static TransactionJpaEntity toEntity(Transaction transaction, AccountJpaEntity account) {
         return TransactionJpaEntity.builder()
                 .id(transaction.getId())
-                .account(accountEntity)
+                .account(account)
                 .description(transaction.getDescription())
                 .currency(transaction.getCurrency())
                 .amount(transaction.getAmount())
