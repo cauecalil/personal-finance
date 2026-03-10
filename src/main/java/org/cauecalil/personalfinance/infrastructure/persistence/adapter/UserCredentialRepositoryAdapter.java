@@ -28,7 +28,7 @@ public class UserCredentialRepositoryAdapter implements UserCredentialRepository
     }
 
     @Override
-    public void delete(Long id) {
+    public void deleteById(Long id) {
         userCredentialJpaRepository.deleteById(id);
     }
 }

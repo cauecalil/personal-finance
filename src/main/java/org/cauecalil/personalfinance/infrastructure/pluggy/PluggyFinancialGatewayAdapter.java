@@ -1,10 +1,7 @@
 package org.cauecalil.personalfinance.infrastructure.pluggy;
 
 import ai.pluggy.client.PluggyClient;
-import ai.pluggy.client.response.Account;
-import ai.pluggy.client.response.AccountsResponse;
-import ai.pluggy.client.response.Transaction;
-import ai.pluggy.client.response.TransactionsResponse;
+import ai.pluggy.client.response.*;
 import lombok.extern.slf4j.Slf4j;
 import org.cauecalil.personalfinance.application.dto.internal.AccountData;
 import org.cauecalil.personalfinance.application.dto.internal.TransactionData;
@@ -81,6 +78,25 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
         }
 
         return (String) tokenResponse.get("accessToken");
+    }
+
+    @Override
+    public void removeConnection(UserCredential credential, String itemId) {
+        log.debug("Removing connection for itemId: {}", itemId);
+
+        PluggyClient client = buildClient(credential);
+
+        try {
+            Response<DeleteItemResponse> item = client.service()
+                    .deleteItem(itemId)
+                    .execute();
+
+            if (!item.isSuccessful()) {
+                throw new PluggyAuthException("Failed to delete item. HTTP %d".formatted(item.code()));
+            }
+        } catch (IOException e) {
+            throw new PluggyAuthException("Network error deleting item '%s': %s".formatted(itemId, e.getMessage()), e);
+        }
     }
 
     @Override

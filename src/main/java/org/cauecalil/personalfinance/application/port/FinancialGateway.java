@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface FinancialGateway {
     String createConnectionToken(UserCredential userCredential, String itemId);
+    void removeConnection(UserCredential credential, String itemId);
     List<AccountData> fetchAccounts(UserCredential userCredential, BankConnection bankConnection);
     List<TransactionData> fetchTransactions(UserCredential userCredential, String accountId);
 }

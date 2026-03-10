@@ -5,6 +5,8 @@ import lombok.*;
 import org.cauecalil.personalfinance.domain.model.valueobject.AccountSubType;
 import org.cauecalil.personalfinance.domain.model.valueobject.AccountType;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
@@ -23,6 +25,7 @@ public class AccountJpaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bank_connection_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private BankConnectionJpaEntity bankConnection;
 
     @Column(nullable = false)
