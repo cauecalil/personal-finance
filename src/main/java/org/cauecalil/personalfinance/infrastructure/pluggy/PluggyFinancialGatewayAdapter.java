@@ -1,6 +1,7 @@
 package org.cauecalil.personalfinance.infrastructure.pluggy;
 
 import ai.pluggy.client.PluggyClient;
+import ai.pluggy.client.request.CreateConnectTokenRequest;
 import ai.pluggy.client.response.*;
 import lombok.extern.slf4j.Slf4j;
 import org.cauecalil.personalfinance.application.dto.internal.AccountData;
@@ -11,98 +12,64 @@ import org.cauecalil.personalfinance.domain.model.UserCredential;
 import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
 import org.cauecalil.personalfinance.infrastructure.exception.PluggyAuthException;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 import retrofit2.Response;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 @Slf4j
 public class PluggyFinancialGatewayAdapter implements FinancialGateway {
-    private final Map<String, PluggyClient> clientCache = new ConcurrentHashMap<>();
+    private PluggyClient cachedClient;
+    private String cachedClientId;
+    private String cachedClientSecret;
 
     private PluggyClient buildClient(UserCredential credential) {
-        String cacheKey = credential.getClientId() + ":" + credential.getClientSecret();
-
-        return clientCache.computeIfAbsent(cacheKey, key -> {
-            log.debug("Building new PluggyClient for credentials");
+        if (cachedClient == null || !credential.getClientId().equals(cachedClientId) || !credential.getClientSecret().equals(cachedClientSecret)) {
             try {
-                return PluggyClient.builder()
+                cachedClient = PluggyClient.builder()
                         .clientIdAndSecret(credential.getClientId(), credential.getClientSecret())
                         .build();
-            } catch (Exception e) {
-                throw new PluggyAuthException("Invalid Pluggy credentials. Please check your Client ID and Client Secret.", e);
-            }
-        });
-    }
 
-    @Override
-    public void invalidateCachedCredential(UserCredential credential) {
-        String cacheKey = credential.getClientId() + ":" + credential.getClientSecret();
-        clientCache.remove(cacheKey);
-        log.debug("PluggyClient cache invalidated");
+                cachedClientId = credential.getClientId();
+                cachedClientSecret = credential.getClientSecret();
+            } catch (Exception e) {
+                throw new PluggyAuthException("Invalid Pluggy credentials.", e);
+            }
+        }
+
+        return cachedClient;
     }
 
     @Override
     public String createConnectionToken(UserCredential userCredential, String itemId) {
         log.debug("Requesting Pluggy Connect Token (updateMode: {})", itemId != null);
 
+        PluggyClient client = buildClient(userCredential);
+
         try {
-            return createConnectTokenManual(userCredential, itemId);
+            CreateConnectTokenRequest request = CreateConnectTokenRequest.builder()
+                    .itemId(itemId)
+                    .build();
+
+            Response<ConnectTokenResponse> response = client.service()
+                    .createConnectToken(request)
+                    .execute();
+
+            if (!response.isSuccessful()) {
+                throw new PluggyAuthException("Failed to create connect token. HTTP %d".formatted(response.code()));
+            }
+
+            return Optional.ofNullable(response.body())
+                    .map(ConnectTokenResponse::getAccessToken)
+                    .orElseThrow(() -> new PluggyAuthException("Failed to create connect token. No access token found."));
         } catch (Exception e) {
-            throw new PluggyAuthException("Error requesting connect token: " + e.getMessage(), e);
+            throw new PluggyAuthException("Network error creating connect token: " + e.getMessage(), e);
         }
-    }
-
-    // this workaround is required because the pluggy jdk has not yet been updated to support the avoidDuplicates parameter
-    @SuppressWarnings("unchecked")
-    private String createConnectTokenManual(UserCredential credential, String itemId) {
-        RestClient restClient = RestClient.builder()
-                .baseUrl("https://api.pluggy.ai")
-                .build();
-
-        Map<String, Object> authResponse = restClient.post()
-                .uri("/auth")
-                .header("Content-Type", "application/json")
-                .body(Map.of(
-                        "clientId", credential.getClientId(),
-                        "clientSecret", credential.getClientSecret()
-                ))
-                .retrieve()
-                .body(Map.class);
-
-        if (authResponse == null || !authResponse.containsKey("apiKey")) {
-            throw new PluggyAuthException("Pluggy authentication failed. Verify your Client ID and Client Secret.");
-        }
-
-        String apiKey = (String) authResponse.get("apiKey");
-
-        boolean isNewConnection = itemId == null || itemId.isBlank();
-
-        Map<String, Object> body = new HashMap<>();
-        if (!isNewConnection) {
-            body.put("itemId", itemId);
-        }
-
-        body.put("options", Map.of("avoidDuplicates", isNewConnection));
-
-        Map<String, Object> tokenResponse = restClient.post()
-                .uri("/connect_token")
-                .header("Content-Type", "application/json")
-                .header("X-API-KEY", apiKey)
-                .body(body)
-                .retrieve()
-                .body(Map.class);
-
-        if (tokenResponse == null || !tokenResponse.containsKey("accessToken")) {
-            throw new PluggyAuthException("Pluggy did not return a connect token. Please try again.");
-        }
-
-        return (String) tokenResponse.get("accessToken");
     }
 
     @Override
@@ -112,12 +79,20 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
         PluggyClient client = buildClient(credential);
 
         try {
-            Response<DeleteItemResponse> item = client.service()
+            Response<DeleteItemResponse> response = client.service()
                     .deleteItem(itemId)
                     .execute();
 
-            if (!item.isSuccessful()) {
-                throw new PluggyAuthException("Failed to delete item. HTTP %d".formatted(item.code()));
+            if (!response.isSuccessful()) {
+                throw new PluggyAuthException("Failed to delete item. HTTP %d".formatted(response.code()));
+            }
+
+            Integer count = Optional.ofNullable(response.body())
+                    .map(DeleteItemResponse::getCount)
+                    .orElse(0);
+
+            if (count == 0) {
+                throw new PluggyAuthException("Failed to delete item '%s'. No item found.".formatted(itemId));
             }
         } catch (IOException e) {
             throw new PluggyAuthException("Network error deleting item '%s': %s".formatted(itemId, e.getMessage()), e);

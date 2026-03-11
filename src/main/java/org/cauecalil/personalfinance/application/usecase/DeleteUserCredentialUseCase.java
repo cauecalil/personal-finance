@@ -26,14 +26,10 @@ public class DeleteUserCredentialUseCase {
         List<BankConnection> bankConnections = bankConnectionRepository.findAll();
 
         bankConnections.forEach(bankConnection -> {
-            log.info("Removing bank connection: {}", bankConnection);
             financialGateway.removeConnection(userCredential, bankConnection.getItemId());
             bankConnectionRepository.deleteById(bankConnection.getId());
         });
 
-        log.info("Removing user credential: {}", userCredential);
-
-        financialGateway.invalidateCachedCredential(userCredential);
         userCredentialRepository.delete();
     }
 }
