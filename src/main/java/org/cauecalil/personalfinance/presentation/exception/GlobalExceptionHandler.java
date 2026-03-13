@@ -7,74 +7,65 @@ import org.cauecalil.personalfinance.domain.exception.DomainException;
 import org.cauecalil.personalfinance.infrastructure.exception.InfrastructureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import java.util.LinkedHashMap;
+import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@RestControllerAdvice
 @Slf4j
-public class GlobalExceptionHandler {
+@RestControllerAdvice
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    private static final String URN_PREFIX = "urn:cauecalil:personalfinance:error:";
+
     @ExceptionHandler(DomainException.class)
-    public ProblemDetail handleDomain(DomainException ex) {
-        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    public ProblemDetail handleDomain(DomainException e) {
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, e.getMessage());
+        p.setType(URI.create(URN_PREFIX + "domain-rule-violation"));
         p.setTitle("Business Rule Violation");
         return p;
     }
 
     @ExceptionHandler(ApplicationException.class)
-    public ProblemDetail handleApplication(ApplicationException ex) {
-        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    public ProblemDetail handleApplication(ApplicationException e) {
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+        p.setType(URI.create(URN_PREFIX + "application-error"));
         p.setTitle("Application Error");
         return p;
     }
 
     @ExceptionHandler(InfrastructureException.class)
-    public ProblemDetail handleInfrastructure(InfrastructureException ex) {
-        log.error("Infrastructure error: {}", ex.getMessage(), ex);
-        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, ex.getMessage());
+    public ProblemDetail handleInfrastructure(InfrastructureException e) {
+        log.error("Infrastructure error: {}", e.getMessage(), e);
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, "We are experiencing issues communicating with external services.");
+        p.setType(URI.create(URN_PREFIX + "external-service-error"));
         p.setTitle("External Service Error");
         return p;
     }
 
-    // @Valid
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
-        Map<String, String> fields = new LinkedHashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(fe -> fields.put(fe.getField(), fe.getDefaultMessage()));
-        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed");
-        p.setTitle("Invalid Request");
-        p.setProperty("fields", fields);
-        return p;
-    }
-
-    // @RequestParam / @PathVariable
     @ExceptionHandler(ConstraintViolationException.class)
-    public ProblemDetail handleConstraint(ConstraintViolationException ex) {
-        String detail = ex.getConstraintViolations().stream()
-                .map(cv -> cv.getPropertyPath() + ": " + cv.getMessage())
-                .collect(Collectors.joining(", "));
-        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+    public ProblemDetail handleConstraint(ConstraintViolationException e) {
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "One or more parameters are invalid.");
+        p.setType(URI.create(URN_PREFIX + "invalid-parameter"));
         p.setTitle("Invalid Parameter");
-        return p;
-    }
 
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ProblemDetail handleUnreadable(HttpMessageNotReadableException ex) {
-        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Request body is missing or malformed.");
-        p.setTitle("Invalid JSON");
+        List<Map<String, String>> violations = e.getConstraintViolations().stream()
+                .map(cv -> Map.of("field", cv.getPropertyPath().toString(), "message", cv.getMessage()))
+                .collect(Collectors.toList());
+
+        p.setProperty("violations", violations);
         return p;
     }
 
     @ExceptionHandler(Exception.class)
-    public ProblemDetail handleGeneric(Exception ex) {
-        log.error("Unexpected error: {}", ex.getMessage(), ex);
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
-        problem.setTitle("Internal Server Error");
-        return problem;
+    public ProblemDetail handleGeneric(Exception e) {
+        log.error("Unexpected error: {}", e.getMessage(), e);
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected internal error occurred.");
+        p.setType(URI.create(URN_PREFIX + "internal-server-error"));
+        p.setTitle("Internal Server Error");
+        return p;
     }
 }
