@@ -23,34 +23,29 @@ public class SyncAccountsUseCase {
     public List<Account> execute(UserCredential userCredential, BankConnection bankConnection) {
         List<AccountData> accountDataList = financialGateway.fetchAccounts(userCredential, bankConnection);
 
+        accountRepository.deleteAll();
+
         List<Account> accounts = new ArrayList<>();
 
         for (AccountData accountData : accountDataList) {
-            Account account = accountRepository.findById(accountData.id())
-                    .map(existingAccount -> {
-                        existingAccount.updateBalance(accountData.balance());
-                        return accountRepository.save(existingAccount);
-                    })
-                    .orElseGet(() -> {
-                        Account newAccount = Account.builder()
-                                .id(accountData.id())
-                                .bankConnectionId(bankConnection.getId())
-                                .name(accountData.name())
-                                .marketingName(accountData.marketingName())
-                                .type(AccountType.valueOf(accountData.type()))
-                                .subType(AccountSubType.valueOf(accountData.subType()))
-                                .number(accountData.number())
-                                .owner(accountData.owner())
-                                .taxNumber(accountData.taxNumber())
-                                .balance(accountData.balance())
-                                .currency(accountData.currency())
-                                .build();
-
-                        return accountRepository.save(newAccount);
-                    });
+            Account account = Account.builder()
+                    .id(accountData.id())
+                    .bankConnectionId(bankConnection.getId())
+                    .name(accountData.name())
+                    .marketingName(accountData.marketingName())
+                    .type(AccountType.valueOf(accountData.type()))
+                    .subType(AccountSubType.valueOf(accountData.subType()))
+                    .number(accountData.number())
+                    .owner(accountData.owner())
+                    .taxNumber(accountData.taxNumber())
+                    .balance(accountData.balance())
+                    .currency(accountData.currency())
+                    .build();
 
             accounts.add(account);
         }
+
+        accountRepository.saveAll(accounts);
 
         return accounts;
     }

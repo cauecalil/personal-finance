@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
@@ -21,11 +22,15 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     private final AccountJpaRepository accountJpaRepository;
 
     @Override
-    public Transaction save(Transaction transaction) {
-        AccountJpaEntity accountRef = accountJpaRepository.getReferenceById(transaction.getAccountId());
-        TransactionJpaEntity entity = TransactionMapper.toEntity(transaction, accountRef);
-        TransactionJpaEntity saved = transactionJpaRepository.save(entity);
-        return TransactionMapper.toDomain(saved);
+    public void saveAll(List<Transaction> transactions) {
+        List<TransactionJpaEntity> entities = transactions.stream()
+                .map(transaction -> {
+                    AccountJpaEntity accountRef = accountJpaRepository.getReferenceById(transaction.getAccountId());
+                    return TransactionMapper.toEntity(transaction, accountRef);
+                })
+                .toList();
+
+        transactionJpaRepository.saveAll(entities);
     }
 
     @Override
@@ -46,7 +51,7 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     }
 
     @Override
-    public void deleteByAccountId(String accountId) {
-        transactionJpaRepository.deleteByAccountId(accountId);
+    public void deleteAll() {
+        transactionJpaRepository.deleteAll();
     }
 }

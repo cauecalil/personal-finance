@@ -5,6 +5,5 @@ import lombok.Builder;
 @Builder
 public record SyncBankDataResponse(
         Integer accountsSynced,
-        Integer transactionsSynced,
-        String message
+        Integer transactionsSynced
 ) {}

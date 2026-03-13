@@ -9,6 +9,7 @@ import org.cauecalil.personalfinance.domain.model.UserCredential;
 import org.cauecalil.personalfinance.domain.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -17,21 +18,15 @@ public class SyncTransactionsUseCase {
     private final FinancialGateway financialGateway;
     private final TransactionRepository transactionRepository;
 
-    public int execute(UserCredential userCredential, List<Account> accounts, boolean fullSync) {
-        int transactionsSynced = 0;
+    public int execute(UserCredential userCredential, List<Account> accounts) {
+        transactionRepository.deleteAll();
+
+        List<Transaction> transactions = new ArrayList<>();
 
         for (Account account : accounts) {
-            if (fullSync) {
-                transactionRepository.deleteByAccountId(account.getId());
-            }
-
             List<TransactionData> transactionDataList = financialGateway.fetchTransactions(userCredential, account.getId());
 
             for (TransactionData transactionData : transactionDataList) {
-                if (transactionRepository.existsById(transactionData.id())) {
-                    continue;
-                }
-
                 Transaction transaction = Transaction.builder()
                         .id(transactionData.id())
                         .accountId(account.getId())
@@ -44,12 +39,12 @@ public class SyncTransactionsUseCase {
                         .occurredAt(transactionData.occurredAt())
                         .build();
 
-                transactionRepository.save(transaction);
-
-                transactionsSynced++;
+                transactions.add(transaction);
             }
         }
 
-        return transactionsSynced;
+        transactionRepository.saveAll(transactions);
+
+        return transactions.size();
     }
 }

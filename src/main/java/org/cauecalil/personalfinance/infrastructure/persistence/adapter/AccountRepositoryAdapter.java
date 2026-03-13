@@ -20,11 +20,15 @@ public class AccountRepositoryAdapter implements AccountRepository {
     private final BankConnectionJpaRepository bankConnectionJpaRepository;
 
     @Override
-    public Account save(Account account) {
-        BankConnectionJpaEntity bankConnectionRef = bankConnectionJpaRepository.getReferenceById(account.getBankConnectionId());
-        AccountJpaEntity entity = AccountMapper.toEntity(account, bankConnectionRef);
-        AccountJpaEntity saved = accountJpaRepository.save(entity);
-        return AccountMapper.toDomain(saved);
+    public void saveAll(List<Account> accounts) {
+        List<AccountJpaEntity> entities = accounts.stream()
+                .map(account -> {
+                    BankConnectionJpaEntity bankConnectionRef = bankConnectionJpaRepository.getReferenceById(account.getBankConnectionId());
+                    return AccountMapper.toEntity(account, bankConnectionRef);
+                })
+                .toList();
+
+        accountJpaRepository.saveAll(entities);
     }
 
     @Override
@@ -40,7 +44,7 @@ public class AccountRepositoryAdapter implements AccountRepository {
     }
 
     @Override
-    public void delete(String id) {
-        accountJpaRepository.deleteById(id);
+    public void deleteAll() {
+        accountJpaRepository.deleteAll();
     }
 }

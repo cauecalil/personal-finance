@@ -10,5 +10,4 @@ import java.time.Instant;
 public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEntity, String> {
     Page<TransactionJpaEntity> findByAccountIdAndOccurredAtBetween(String accountId, Instant from, Instant to, Pageable pageable);
     Page<TransactionJpaEntity> findByOccurredAtBetween(Instant from, Instant to, Pageable pageable);
-    void deleteByAccountId(String accountId);
 }

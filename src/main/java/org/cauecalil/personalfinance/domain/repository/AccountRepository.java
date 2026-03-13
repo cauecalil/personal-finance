@@ -6,8 +6,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AccountRepository {
-    Account save(Account account);
+    void saveAll(List<Account> accounts);
     Optional<Account> findById(String id);
     List<Account> findAll();
     void delete(String id);
+    void deleteAll();
 }

@@ -5,11 +5,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
+import java.util.List;
 
 public interface TransactionRepository {
     Transaction save(Transaction transaction);
+    void saveAll(List<Transaction> transactions);
     Page<Transaction> findByAccountIdAndOccurredAtBetween(String accountId, Instant from, Instant to, Pageable pageable);
     Page<Transaction> findByOccurredAtBetween(Instant from, Instant to, Pageable pageable);
     boolean existsById(String id);
     void deleteByAccountId(String accountId);
+    void deleteAll();
 }
