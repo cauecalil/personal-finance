@@ -2,7 +2,7 @@ package org.cauecalil.personalfinance.presentation.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cauecalil.personalfinance.application.dto.response.TransactionResponse;
+import org.cauecalil.personalfinance.application.dto.response.ListTransactionsResponse;
 import org.cauecalil.personalfinance.application.usecase.ListTransactionsUseCase;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -14,7 +14,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.zone.ZoneRulesException;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -24,16 +23,18 @@ public class TransactionController {
     private final ListTransactionsUseCase listTransactionsUseCase;
 
     @GetMapping("/{accountId}")
-    public ResponseEntity<List<TransactionResponse>> list(
+    public ResponseEntity<ListTransactionsResponse> list(
             @PathVariable String accountId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "2025-01-01") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(defaultValue = "2026-01-01") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int pageSize,
             @RequestHeader(value = "Time-Zone", defaultValue = "America/Sao_Paulo") String timeZone
     ) {
         ZoneId zoneId = resolveZoneId(timeZone);
         Instant fromInstant = from.atStartOfDay(zoneId).toInstant();
         Instant toInstant = to.atTime(LocalTime.MAX).atZone(zoneId).toInstant();
-        List<TransactionResponse> result = listTransactionsUseCase.execute(accountId, fromInstant, toInstant);
+        ListTransactionsResponse result = listTransactionsUseCase.execute(accountId, fromInstant, toInstant, page, pageSize);
         return ResponseEntity.status(HttpStatus.OK).body(result);
     }
 

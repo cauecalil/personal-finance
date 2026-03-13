@@ -18,5 +18,5 @@ server:
 
 logging:
   level:
-    org.cauecalil: INFO
+    org.cauecalil: DEBUG
     org.hibernate.SQL: WARN

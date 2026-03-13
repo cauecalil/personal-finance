@@ -8,11 +8,11 @@ import org.cauecalil.personalfinance.infrastructure.persistence.entity.Transacti
 import org.cauecalil.personalfinance.infrastructure.persistence.mapper.TransactionMapper;
 import org.cauecalil.personalfinance.infrastructure.persistence.repository.AccountJpaRepository;
 import org.cauecalil.personalfinance.infrastructure.persistence.repository.TransactionJpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -29,16 +29,15 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     }
 
     @Override
-    public Optional<Transaction> findById(String id) {
-        return transactionJpaRepository.findById(id).map(TransactionMapper::toDomain);
+    public Page<Transaction> findByAccountIdAndOccurredAtBetween(String accountId, Instant from, Instant to, Pageable pageable) {
+        Page<TransactionJpaEntity> page = transactionJpaRepository.findByAccountIdAndOccurredAtBetween(accountId, from, to, pageable);
+        return page.map(TransactionMapper::toDomain);
     }
 
     @Override
-    public List<Transaction> findByAccountIdAndOccurredAtBetween(String accountId, Instant from, Instant to) {
-        return transactionJpaRepository.findByAccountIdAndOccurredAtBetween(accountId, from, to)
-                .stream()
-                .map(TransactionMapper::toDomain)
-                .toList();
+    public Page<Transaction> findByOccurredAtBetween(Instant from, Instant to, Pageable pageable) {
+        return transactionJpaRepository.findByOccurredAtBetween(from, to, pageable)
+                .map(TransactionMapper::toDomain);
     }
 
     @Override
