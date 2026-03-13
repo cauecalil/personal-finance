@@ -2,6 +2,7 @@ package org.cauecalil.personalfinance.infrastructure.pluggy;
 
 import ai.pluggy.client.PluggyClient;
 import ai.pluggy.client.request.CreateConnectTokenRequest;
+import ai.pluggy.client.request.TransactionsSearchRequest;
 import ai.pluggy.client.response.*;
 import lombok.extern.slf4j.Slf4j;
 import org.cauecalil.personalfinance.application.dto.internal.AccountData;
@@ -10,13 +11,14 @@ import org.cauecalil.personalfinance.application.port.FinancialGateway;
 import org.cauecalil.personalfinance.domain.model.BankConnection;
 import org.cauecalil.personalfinance.domain.model.UserCredential;
 import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
-import org.cauecalil.personalfinance.infrastructure.exception.PluggyAuthException;
+import org.cauecalil.personalfinance.infrastructure.exception.PluggyException;
 import org.springframework.stereotype.Component;
 import retrofit2.Response;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +40,7 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
                 cachedClientId = credential.getClientId();
                 cachedClientSecret = credential.getClientSecret();
             } catch (Exception e) {
-                throw new PluggyAuthException("Invalid Pluggy credentials.", e);
+                throw new PluggyException("Invalid Pluggy credentials.", e);
             }
         }
 
@@ -61,14 +63,14 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
                     .execute();
 
             if (!response.isSuccessful()) {
-                throw new PluggyAuthException("Failed to create connect token. HTTP %d".formatted(response.code()));
+                throw new PluggyException("Failed to create connect token. HTTP %d".formatted(response.code()));
             }
 
             return Optional.ofNullable(response.body())
                     .map(ConnectTokenResponse::getAccessToken)
-                    .orElseThrow(() -> new PluggyAuthException("Failed to create connect token. No access token found."));
+                    .orElseThrow(() -> new PluggyException("Failed to create connect token. No access token found."));
         } catch (Exception e) {
-            throw new PluggyAuthException("Network error creating connect token: " + e.getMessage(), e);
+            throw new PluggyException("Network error creating connect token: " + e.getMessage(), e);
         }
     }
 
@@ -84,7 +86,7 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
                     .execute();
 
             if (!response.isSuccessful()) {
-                throw new PluggyAuthException("Failed to delete item. HTTP %d".formatted(response.code()));
+                throw new PluggyException("Failed to delete item. HTTP %d".formatted(response.code()));
             }
 
             Integer count = Optional.ofNullable(response.body())
@@ -92,10 +94,10 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
                     .orElse(0);
 
             if (count == 0) {
-                throw new PluggyAuthException("Failed to delete item '%s'. No item found.".formatted(itemId));
+                throw new PluggyException("Failed to delete item '%s'. No item found.".formatted(itemId));
             }
         } catch (IOException e) {
-            throw new PluggyAuthException("Network error deleting item '%s': %s".formatted(itemId, e.getMessage()), e);
+            throw new PluggyException("Network error deleting item '%s': %s".formatted(itemId, e.getMessage()), e);
         }
     }
 
@@ -111,7 +113,7 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
                     .execute();
 
             if (!response.isSuccessful()) {
-                throw new PluggyAuthException("Failed to fetch accounts for '%s'. HTTP %d".formatted(bankConnection.getBankName(), response.code()));
+                throw new PluggyException("Failed to fetch accounts for '%s'. HTTP %d".formatted(bankConnection.getBankName(), response.code()));
             }
 
             return Optional.ofNullable(response.body())
@@ -121,33 +123,58 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
                     .map(this::toAccountData)
                     .toList();
         } catch (IOException e) {
-            throw new PluggyAuthException("Network error fetching accounts for '%s': %s".formatted(bankConnection.getBankName(), e.getMessage()), e);
+            throw new PluggyException("Network error fetching accounts for '%s': %s".formatted(bankConnection.getBankName(), e.getMessage()), e);
         }
     }
 
     @Override
     public List<TransactionData> fetchTransactions(UserCredential credential, String accountId) {
-        log.debug("Fetching transactions for account: {}", accountId);
+        log.debug("Fetching all transactions for account: {}", accountId);
 
         PluggyClient client = buildClient(credential);
+        List<TransactionData> allTransactions = new ArrayList<>();
+
+        int currentPage = 1;
+        int totalPages = 1;
 
         try {
-            Response<TransactionsResponse> response = client.service()
-                    .getTransactions(accountId)
-                    .execute();
+            do {
+                log.debug("Fetching page {} for account {}", currentPage, accountId);
 
-            if (!response.isSuccessful()) {
-                throw new PluggyAuthException("Failed to fetch transactions. HTTP %d".formatted(response.code()));
-            }
+                TransactionsSearchRequest searchRequest = new TransactionsSearchRequest()
+                        .page(currentPage);
 
-            return Optional.ofNullable(response.body())
-                    .map(TransactionsResponse::getResults)
-                    .orElse(Collections.emptyList())
-                    .stream()
-                    .map(this::toTransactionData)
-                    .toList();
+                Response<TransactionsResponse> response = client.service()
+                        .getTransactions(accountId, searchRequest)
+                        .execute();
+
+                if (!response.isSuccessful()) {
+                    throw new PluggyException("Failed to fetch transactions on page %d. HTTP %d".formatted(currentPage, response.code()));
+                }
+
+                TransactionsResponse body = response.body();
+
+                if (body == null || body.getResults() == null || body.getResults().isEmpty()) {
+                    log.warn("Empty body or results on page {} for account {}", currentPage, accountId);
+                    break;
+                }
+
+                List<TransactionData> pageResults = body.getResults().stream()
+                        .map(this::toTransactionData)
+                        .toList();
+
+                allTransactions.addAll(pageResults);
+
+                totalPages = body.getTotalPages() != null ? body.getTotalPages() : 1;
+
+                currentPage++;
+            } while (currentPage <= totalPages);
+
+            log.debug("Successfully fetched {} transactions across {} pages for account {}", allTransactions.size(), totalPages, accountId);
+
+            return allTransactions;
         } catch (IOException e) {
-            throw new PluggyAuthException("Network error fetching transactions: " + e.getMessage(), e);
+            throw new PluggyException("Network error fetching transactions: " + e.getMessage(), e);
         }
     }
 

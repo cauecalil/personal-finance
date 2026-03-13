@@ -6,7 +6,6 @@ import org.cauecalil.personalfinance.application.port.FinancialGateway;
 import org.cauecalil.personalfinance.domain.model.Account;
 import org.cauecalil.personalfinance.domain.model.Transaction;
 import org.cauecalil.personalfinance.domain.model.UserCredential;
-import org.cauecalil.personalfinance.domain.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -14,13 +13,10 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class SyncTransactionsUseCase {
+public class FetchTransactionsUseCase {
     private final FinancialGateway financialGateway;
-    private final TransactionRepository transactionRepository;
 
-    public int execute(UserCredential userCredential, List<Account> accounts) {
-        transactionRepository.deleteAll();
-
+    public List<Transaction> execute(UserCredential userCredential, List<Account> accounts) {
         List<Transaction> transactions = new ArrayList<>();
 
         for (Account account : accounts) {
@@ -43,8 +39,6 @@ public class SyncTransactionsUseCase {
             }
         }
 
-        transactionRepository.saveAll(transactions);
-
-        return transactions.size();
+        return transactions;
     }
 }
