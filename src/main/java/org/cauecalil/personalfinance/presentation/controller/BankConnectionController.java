@@ -33,8 +33,8 @@ public class BankConnectionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
-    @DeleteMapping
-    public ResponseEntity<Void> remove(@Valid @RequestParam Long id) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> remove(@Valid @PathVariable Long id) {
         removeBankConnectionUseCase.execute(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
