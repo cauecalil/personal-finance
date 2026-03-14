@@ -9,6 +9,7 @@ import org.cauecalil.personalfinance.application.dto.internal.AccountData;
 import org.cauecalil.personalfinance.application.dto.internal.TransactionData;
 import org.cauecalil.personalfinance.application.port.FinancialGateway;
 import org.cauecalil.personalfinance.domain.model.BankConnection;
+import org.cauecalil.personalfinance.domain.model.Category;
 import org.cauecalil.personalfinance.domain.model.UserCredential;
 import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
 import org.cauecalil.personalfinance.infrastructure.exception.PluggyException;
@@ -98,6 +99,37 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
             }
         } catch (IOException e) {
             throw new PluggyException("Network error deleting item '%s': %s".formatted(itemId, e.getMessage()), e);
+        }
+    }
+
+    @Override
+    public List<Category> fetchCategories(UserCredential userCredential) {
+        log.debug("Fetching categories from Pluggy");
+
+        PluggyClient client = buildClient(userCredential);
+
+        try {
+            Response<CategoriesResponse> response = client.service()
+                    .getCategories()
+                    .execute();
+
+            if (!response.isSuccessful()) {
+                throw new PluggyException("Failed to fetch categories. HTTP %d".formatted(response.code()));
+            }
+
+            return Optional.ofNullable(response.body())
+                    .map(CategoriesResponse::getResults)
+                    .orElse(Collections.emptyList())
+                    .stream()
+                    .map(category -> Category.builder()
+                            .id(category.getId())
+                            .description(category.getDescription())
+                            //.descriptionTranslated(category.getDescriptionTranslated())
+                            .parentId(category.getParentId())
+                            .build())
+                    .toList();
+        } catch (IOException e) {
+            throw new PluggyException("Network error fetching categories: " + e.getMessage(), e);
         }
     }
 
