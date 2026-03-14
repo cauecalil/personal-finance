@@ -1,6 +1,7 @@
 package org.cauecalil.personalfinance.application.dto.response;
 
 import lombok.Builder;
+import org.cauecalil.personalfinance.domain.model.Category;
 import org.cauecalil.personalfinance.domain.model.Transaction;
 
 import java.math.BigDecimal;
@@ -17,7 +18,7 @@ public record TransactionResponse(
         Instant date,
         String category
 ) {
-    public static TransactionResponse from(Transaction transaction) {
+    public static TransactionResponse from(Transaction transaction, Category category) {
         return TransactionResponse.builder()
                 .id(transaction.getId())
                 .description(transaction.getDescription())
@@ -26,7 +27,7 @@ public record TransactionResponse(
                 .amountInAccountCurrency(transaction.getAmountInAccountCurrency())
                 .type(transaction.getType().name())
                 .date(transaction.getOccurredAt())
-                .category(transaction.getCategory())
+                .category(category.getDisplayDescription())
                 .build();
     }
 }

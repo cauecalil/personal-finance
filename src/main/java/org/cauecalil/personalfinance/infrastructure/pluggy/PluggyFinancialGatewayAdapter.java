@@ -213,7 +213,7 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
                                 .amount(BigDecimal.valueOf(transaction.getAmount()))
                                 .amountInAccountCurrency(transaction.getAmountInAccountCurrency() == null ? null : BigDecimal.valueOf(transaction.getAmountInAccountCurrency()))
                                 .type(TransactionType.valueOf(transaction.getType().name()))
-                                .category(transaction.getCategory())
+                                .categoryId(transaction.getCategoryId())
                                 .occurredAt(Instant.parse(transaction.getDate()))
                                 .build())
                         .toList();

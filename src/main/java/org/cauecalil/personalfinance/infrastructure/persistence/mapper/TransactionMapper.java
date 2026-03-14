@@ -1,12 +1,12 @@
 package org.cauecalil.personalfinance.infrastructure.persistence.mapper;
 
 import org.cauecalil.personalfinance.domain.model.Transaction;
-import org.cauecalil.personalfinance.domain.model.valueobject.*;
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.AccountJpaEntity;
+import org.cauecalil.personalfinance.infrastructure.persistence.entity.CategoryJpaEntity;
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.TransactionJpaEntity;
 
 public class TransactionMapper {
-    public static TransactionJpaEntity toEntity(Transaction transaction, AccountJpaEntity account) {
+    public static TransactionJpaEntity toEntity(Transaction transaction, AccountJpaEntity account, CategoryJpaEntity category) {
         return TransactionJpaEntity.builder()
                 .id(transaction.getId())
                 .account(account)
@@ -15,7 +15,7 @@ public class TransactionMapper {
                 .amount(transaction.getAmount())
                 .amountInAccountCurrency(transaction.getAmountInAccountCurrency())
                 .type(transaction.getType())
-                .category(transaction.getCategory())
+                .category(category)
                 .occurredAt(transaction.getOccurredAt())
                 .build();
     }
@@ -29,7 +29,7 @@ public class TransactionMapper {
                 .amount(entity.getAmount())
                 .amountInAccountCurrency(entity.getAmountInAccountCurrency())
                 .type(entity.getType())
-                .category(entity.getCategory())
+                .categoryId(entity.getCategory().getId())
                 .occurredAt(entity.getOccurredAt())
                 .build();
     }

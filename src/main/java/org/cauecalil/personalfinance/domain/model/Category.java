@@ -11,4 +11,8 @@ public class Category {
     private String description;
     private String descriptionTranslated;
     private String parentId;
+
+    public String getDisplayDescription() {
+        return descriptionTranslated != null ? descriptionTranslated : description;
+    }
 }

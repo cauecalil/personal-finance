@@ -18,6 +18,6 @@ public class Transaction {
     private BigDecimal amount;
     private BigDecimal amountInAccountCurrency;
     private TransactionType type;
-    private String category;
+    private String categoryId;
     private Instant occurredAt;
 }

@@ -20,13 +20,15 @@ import java.util.List;
 public class TransactionRepositoryAdapter implements TransactionRepository {
     private final TransactionJpaRepository transactionJpaRepository;
     private final AccountJpaRepository accountJpaRepository;
+    private final CategoryJpaRepository categoryJpaRepository;
 
     @Override
     public void saveAll(List<Transaction> transactions) {
         List<TransactionJpaEntity> entities = transactions.stream()
                 .map(transaction -> {
                     AccountJpaEntity accountRef = accountJpaRepository.getReferenceById(transaction.getAccountId());
-                    return TransactionMapper.toEntity(transaction, accountRef);
+                    CategoryJpaEntity categoryRef = categoryJpaRepository.getReferenceById(transaction.getCategoryId());
+                    return TransactionMapper.toEntity(transaction, accountRef, categoryRef);
                 })
                 .toList();
 

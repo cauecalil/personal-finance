@@ -9,6 +9,7 @@ import org.cauecalil.personalfinance.infrastructure.persistence.repository.Categ
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Set;
 
 @Repository
 @RequiredArgsConstructor
@@ -22,5 +23,13 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
                 .toList();
 
         categoryJpaRepository.saveAll(entities);
+    }
+
+    @Override
+    public List<Category> findAllById(Set<String> ids) {
+        return categoryJpaRepository.findAllById(ids)
+                .stream()
+                .map(CategoryMapper::toDomain)
+                .toList();
     }
 }

@@ -42,7 +42,9 @@ public class TransactionJpaEntity {
     @Column(nullable = false)
     private TransactionType type;
 
-    private String category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private CategoryJpaEntity category;
 
     @Column(nullable = false)
     private Instant occurredAt;
