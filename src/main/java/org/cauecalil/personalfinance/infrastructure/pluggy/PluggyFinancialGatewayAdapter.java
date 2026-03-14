@@ -5,12 +5,13 @@ import ai.pluggy.client.request.CreateConnectTokenRequest;
 import ai.pluggy.client.request.TransactionsSearchRequest;
 import ai.pluggy.client.response.*;
 import lombok.extern.slf4j.Slf4j;
-import org.cauecalil.personalfinance.application.dto.internal.AccountData;
-import org.cauecalil.personalfinance.application.dto.internal.TransactionData;
 import org.cauecalil.personalfinance.application.port.FinancialGateway;
-import org.cauecalil.personalfinance.domain.model.BankConnection;
+import org.cauecalil.personalfinance.domain.model.*;
+import org.cauecalil.personalfinance.domain.model.Account;
 import org.cauecalil.personalfinance.domain.model.Category;
-import org.cauecalil.personalfinance.domain.model.UserCredential;
+import org.cauecalil.personalfinance.domain.model.Transaction;
+import org.cauecalil.personalfinance.domain.model.valueobject.AccountSubType;
+import org.cauecalil.personalfinance.domain.model.valueobject.AccountType;
 import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
 import org.cauecalil.personalfinance.infrastructure.exception.PluggyException;
 import org.springframework.stereotype.Component;
@@ -134,7 +135,7 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
     }
 
     @Override
-    public List<AccountData> fetchAccounts(UserCredential userCredential, BankConnection bankConnection) {
+    public List<Account> fetchAccounts(UserCredential userCredential, BankConnection bankConnection) {
         log.debug("Fetching accounts for bank: {}", bankConnection.getBankName());
 
         PluggyClient client = buildClient(userCredential);
@@ -152,7 +153,19 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
                     .map(AccountsResponse::getResults)
                     .orElse(Collections.emptyList())
                     .stream()
-                    .map(this::toAccountData)
+                    .map(account -> Account.builder()
+                            .id(account.getId())
+                            .bankConnectionId(bankConnection.getId())
+                            .name(account.getName())
+                            .marketingName(account.getMarketingName())
+                            .type(AccountType.valueOf(account.getType()))
+                            .subType(AccountSubType.valueOf(account.getSubtype()))
+                            .number(account.getNumber())
+                            .owner(account.getOwner())
+                            .taxNumber(account.getTaxNumber())
+                            .balance(BigDecimal.valueOf(account.getBalance()))
+                            .currency(account.getCurrencyCode())
+                            .build())
                     .toList();
         } catch (IOException e) {
             throw new PluggyException("Network error fetching accounts for '%s': %s".formatted(bankConnection.getBankName(), e.getMessage()), e);
@@ -160,11 +173,11 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
     }
 
     @Override
-    public List<TransactionData> fetchTransactions(UserCredential credential, String accountId) {
+    public List<Transaction> fetchTransactions(UserCredential credential, String accountId) {
         log.debug("Fetching all transactions for account: {}", accountId);
 
         PluggyClient client = buildClient(credential);
-        List<TransactionData> allTransactions = new ArrayList<>();
+        List<Transaction> allTransactions = new ArrayList<>();
 
         int currentPage = 1;
         int totalPages = 1;
@@ -191,8 +204,18 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
                     break;
                 }
 
-                List<TransactionData> pageResults = body.getResults().stream()
-                        .map(this::toTransactionData)
+                List<Transaction> pageResults = body.getResults().stream()
+                        .map(transaction -> Transaction.builder()
+                                .id(transaction.getId())
+                                .accountId(accountId)
+                                .description(transaction.getDescription())
+                                .currency(transaction.getCurrencyCode())
+                                .amount(BigDecimal.valueOf(transaction.getAmount()))
+                                .amountInAccountCurrency(transaction.getAmountInAccountCurrency() == null ? null : BigDecimal.valueOf(transaction.getAmountInAccountCurrency()))
+                                .type(TransactionType.valueOf(transaction.getType().name()))
+                                .category(transaction.getCategory())
+                                .occurredAt(Instant.parse(transaction.getDate()))
+                                .build())
                         .toList();
 
                 allTransactions.addAll(pageResults);
@@ -208,35 +231,5 @@ public class PluggyFinancialGatewayAdapter implements FinancialGateway {
         } catch (IOException e) {
             throw new PluggyException("Network error fetching transactions: " + e.getMessage(), e);
         }
-    }
-
-    private AccountData toAccountData(Account account) {
-        return AccountData.builder()
-                .id(account.getId())
-                .name(account.getName())
-                .marketingName(account.getMarketingName())
-                .type(account.getType())
-                .subType(account.getSubtype())
-                .number(account.getNumber())
-                .owner(account.getOwner())
-                .taxNumber(account.getTaxNumber())
-                .balance(BigDecimal.valueOf(account.getBalance()))
-                .currency(account.getCurrencyCode())
-                .build();
-    }
-
-    private TransactionData toTransactionData(Transaction transaction) {
-        var amountInAccountCurrency = transaction.getAmountInAccountCurrency() == null ? null : BigDecimal.valueOf(transaction.getAmountInAccountCurrency());
-
-        return TransactionData.builder()
-                .id(transaction.getId())
-                .description(transaction.getDescription())
-                .currency(transaction.getCurrencyCode())
-                .amount(BigDecimal.valueOf(transaction.getAmount()))
-                .amountInAccountCurrency(amountInAccountCurrency)
-                .type(TransactionType.from(transaction.getType().name(), BigDecimal.valueOf(transaction.getAmount())))
-                .category(transaction.getCategory())
-                .occurredAt(Instant.parse(transaction.getDate()))
-                .build();
     }
 }

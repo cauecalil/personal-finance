@@ -12,6 +12,7 @@ import org.cauecalil.personalfinance.domain.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,8 +23,6 @@ public class SyncBankDataUseCase {
     private final BankConnectionRepository bankConnectionRepository;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
-    private final FetchAccountsUseCase fetchAccountsUseCase;
-    private final FetchTransactionsUseCase fetchTransactionsUseCase;
     private final FinancialGateway financialGateway;
 
     public SyncBankDataResponse execute() {
@@ -51,8 +50,11 @@ public class SyncBankDataUseCase {
             log.info("Syncing bank: {}", bankConnection.getBankName());
 
             try {
-                List<Account> accounts = fetchAccountsUseCase.execute(userCredential, bankConnection);
-                List<Transaction> transactions = fetchTransactionsUseCase.execute(userCredential, accounts);
+                List<Account> accounts = financialGateway.fetchAccounts(userCredential, bankConnection);
+
+                List<Transaction> transactions = accounts.stream()
+                        .flatMap(account -> financialGateway.fetchTransactions(userCredential, account.getId()).stream())
+                        .collect(Collectors.toList());
 
                 accountRepository.saveAll(accounts);
                 transactionRepository.saveAll(transactions);

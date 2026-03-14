@@ -22,8 +22,4 @@ public class Account {
     private String taxNumber;
     private BigDecimal balance;
     private String currency;
-
-    public void updateBalance(BigDecimal amount) {
-        this.balance = amount;
-    }
 }
