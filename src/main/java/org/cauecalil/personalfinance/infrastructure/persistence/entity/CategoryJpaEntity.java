@@ -23,4 +23,6 @@ public class CategoryJpaEntity {
     private String descriptionTranslated;
 
     private String parentId;
+
+    private String rootCategoryId;
 }

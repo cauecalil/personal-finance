@@ -10,6 +10,7 @@ public class CategoryMapper {
                 .description(category.getDescription())
                 .descriptionTranslated(category.getDescriptionTranslated())
                 .parentId(category.getParentId())
+                .rootCategoryId(category.getRootCategoryId())
                 .build();
     }
 
@@ -19,6 +20,7 @@ public class CategoryMapper {
                 .description(entity.getDescription())
                 .descriptionTranslated(entity.getDescriptionTranslated())
                 .parentId(entity.getParentId())
+                .rootCategoryId(entity.getRootCategoryId())
                 .build();
     }
 }

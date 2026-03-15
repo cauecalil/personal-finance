@@ -6,9 +6,15 @@ import org.cauecalil.personalfinance.application.dto.response.SyncBankDataRespon
 import org.cauecalil.personalfinance.application.exception.BankConnectionNotFoundException;
 import org.cauecalil.personalfinance.application.exception.UserCredentialNotFoundException;
 import org.cauecalil.personalfinance.application.port.FinancialGateway;
-import org.cauecalil.personalfinance.domain.model.*;
+import org.cauecalil.personalfinance.domain.model.Account;
+import org.cauecalil.personalfinance.domain.model.BankConnection;
+import org.cauecalil.personalfinance.domain.model.Transaction;
+import org.cauecalil.personalfinance.domain.model.UserCredential;
 import org.cauecalil.personalfinance.domain.model.valueobject.BankConnectionStatus;
-import org.cauecalil.personalfinance.domain.repository.*;
+import org.cauecalil.personalfinance.domain.repository.AccountRepository;
+import org.cauecalil.personalfinance.domain.repository.BankConnectionRepository;
+import org.cauecalil.personalfinance.domain.repository.TransactionRepository;
+import org.cauecalil.personalfinance.domain.repository.UserCredentialRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,7 +25,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SyncBankDataUseCase {
     private final UserCredentialRepository userCredentialRepository;
-    private final CategoryRepository categoryRepository;
+    private final SyncCategoriesUseCase syncCategoriesUseCase;
     private final BankConnectionRepository bankConnectionRepository;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
@@ -29,8 +35,7 @@ public class SyncBankDataUseCase {
         UserCredential userCredential = userCredentialRepository.find()
                 .orElseThrow(UserCredentialNotFoundException::new);
 
-        List<Category> categories = financialGateway.fetchCategories(userCredential);
-        categoryRepository.saveAll(categories);
+        int categoriesSynced = syncCategoriesUseCase.execute(userCredential);
 
         List<BankConnection> bankConnections = bankConnectionRepository.findAll();
 
@@ -72,7 +77,7 @@ public class SyncBankDataUseCase {
         }
 
         return SyncBankDataResponse.builder()
-                .categoriesSynced(categories.size())
+                .categoriesSynced(categoriesSynced)
                 .accountsSynced(accountsSynced)
                 .transactionsSynced(transactionsSynced)
                 .build();
