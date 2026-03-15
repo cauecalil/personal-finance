@@ -55,6 +55,11 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     }
 
     @Override
+    public List<CategoryAggregation> findCategoryAggregations(String accountId, Instant from, Instant to) {
+        return transactionJpaRepository.findCategoryAggregations(accountId, from, to);
+    }
+
+    @Override
     public void deleteAll() {
         transactionJpaRepository.deleteAll();
     }

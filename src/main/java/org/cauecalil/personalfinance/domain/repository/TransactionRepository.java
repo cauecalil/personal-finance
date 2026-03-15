@@ -1,6 +1,7 @@
 package org.cauecalil.personalfinance.domain.repository;
 
 import org.cauecalil.personalfinance.domain.model.Transaction;
+import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -10,10 +11,12 @@ import java.util.List;
 
 public interface TransactionRepository {
     record Metrics(BigDecimal totalIncome, BigDecimal totalExpenses) {}
+    record CategoryAggregation(TransactionType type, String category, BigDecimal total) {}
 
     void saveAll(List<Transaction> transactions);
     Page<Transaction> findByAccountIdAndOccurredAtBetween(String accountId, Instant from, Instant to, Pageable pageable);
     Page<Transaction> findByOccurredAtBetween(Instant from, Instant to, Pageable pageable);
     Metrics findMetrics(String accountId, Instant from, Instant to);
+    List<CategoryAggregation> findCategoryAggregations(String accountId, Instant from, Instant to);
     void deleteAll();
 }

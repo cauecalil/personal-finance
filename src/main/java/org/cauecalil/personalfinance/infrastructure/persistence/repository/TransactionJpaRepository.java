@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.Instant;
+import java.util.List;
 
 public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEntity, String> {
     Page<TransactionJpaEntity> findByAccountIdAndOccurredAtBetween(String accountId, Instant from, Instant to, Pageable pageable);
@@ -22,4 +23,18 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
         AND (:accountId IS NULL OR account.id = :accountId)
     """)
     TransactionRepository.Metrics findMetrics(String accountId, Instant from, Instant to);
+
+    @Query("""
+        SELECT
+            t.type AS type,
+            COALESCE(root.descriptionTranslated, root.description, cat.descriptionTranslated, cat.description, 'Other') AS category,
+            SUM(ABS(COALESCE(t.amountInAccountCurrency, t.amount))) AS total
+        FROM TransactionJpaEntity t
+        LEFT JOIN t.category cat
+        LEFT JOIN CategoryJpaEntity root ON root.id = cat.rootCategoryId
+        WHERE t.occurredAt BETWEEN :from AND :to AND (:accountId IS NULL OR t.account.id = :accountId)
+        GROUP BY t.type, COALESCE(root.descriptionTranslated, root.description, cat.descriptionTranslated, cat.description, 'Other')
+        ORDER BY t.type ASC, SUM(ABS(COALESCE(t.amountInAccountCurrency, t.amount))) DESC
+    """)
+    List<TransactionRepository.CategoryAggregation> findCategoryAggregations(String accountId, Instant from, Instant to);
 }
