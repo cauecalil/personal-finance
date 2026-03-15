@@ -2,6 +2,7 @@ package org.cauecalil.personalfinance.infrastructure.persistence.adapter;
 
 import lombok.RequiredArgsConstructor;
 import org.cauecalil.personalfinance.domain.model.Account;
+import org.cauecalil.personalfinance.domain.model.valueobject.AccountType;
 import org.cauecalil.personalfinance.domain.repository.AccountRepository;
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.AccountJpaEntity;
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.BankConnectionJpaEntity;
@@ -10,6 +11,7 @@ import org.cauecalil.personalfinance.infrastructure.persistence.repository.Accou
 import org.cauecalil.personalfinance.infrastructure.persistence.repository.BankConnectionJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,6 +43,11 @@ public class AccountRepositoryAdapter implements AccountRepository {
         return accountJpaRepository.findAll().stream()
                 .map(AccountMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public BigDecimal sumBalancesByType(AccountType type) {
+        return accountJpaRepository.sumBalancesByType(type);
     }
 
     @Override

@@ -4,9 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.cauecalil.personalfinance.domain.model.Transaction;
 import org.cauecalil.personalfinance.domain.repository.TransactionRepository;
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.AccountJpaEntity;
+import org.cauecalil.personalfinance.infrastructure.persistence.entity.CategoryJpaEntity;
 import org.cauecalil.personalfinance.infrastructure.persistence.entity.TransactionJpaEntity;
 import org.cauecalil.personalfinance.infrastructure.persistence.mapper.TransactionMapper;
 import org.cauecalil.personalfinance.infrastructure.persistence.repository.AccountJpaRepository;
+import org.cauecalil.personalfinance.infrastructure.persistence.repository.CategoryJpaRepository;
 import org.cauecalil.personalfinance.infrastructure.persistence.repository.TransactionJpaRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -48,8 +50,8 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     }
 
     @Override
-    public boolean existsById(String id) {
-        return transactionJpaRepository.existsById(id);
+    public Metrics findMetrics(String accountId, Instant from, Instant to) {
+        return transactionJpaRepository.findMetrics(accountId, from, to);
     }
 
     @Override
