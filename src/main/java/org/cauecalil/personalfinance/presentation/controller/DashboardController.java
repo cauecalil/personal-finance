@@ -2,8 +2,10 @@ package org.cauecalil.personalfinance.presentation.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cauecalil.personalfinance.application.dto.response.GetDashboardCashflowResponse;
 import org.cauecalil.personalfinance.application.dto.response.GetDashboardCategoriesResponse;
 import org.cauecalil.personalfinance.application.dto.response.GetDashboardMetricsResponse;
+import org.cauecalil.personalfinance.application.usecase.GetDashboardCashflowUseCase;
 import org.cauecalil.personalfinance.application.usecase.GetDashboardCategoriesUseCase;
 import org.cauecalil.personalfinance.application.usecase.GetDashboardMetricsUseCase;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +26,7 @@ import java.time.zone.ZoneRulesException;
 public class DashboardController {
     private final GetDashboardMetricsUseCase getDashboardMetricsUseCase;
     private final GetDashboardCategoriesUseCase getDashboardCategoriesUseCase;
+    private final GetDashboardCashflowUseCase getDashboardCashflowUseCase;
 
     @GetMapping("/metrics")
     public ResponseEntity<GetDashboardMetricsResponse> metrics(
@@ -50,6 +53,20 @@ public class DashboardController {
         Instant fromInstant = fromDate.atStartOfDay(zoneId).toInstant();
         Instant toInstant = toDate.atTime(LocalTime.MAX).atZone(zoneId).toInstant();
         GetDashboardCategoriesResponse result = getDashboardCategoriesUseCase.execute(accountId, fromInstant, toInstant);
+        return ResponseEntity.status(HttpStatus.OK).body(result);
+    }
+
+    @GetMapping("/cashflow")
+    public ResponseEntity<GetDashboardCashflowResponse> cashflow(
+            @RequestParam(required = false) String accountId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestHeader(value = "Time-Zone", defaultValue = "America/Sao_Paulo") String timeZone
+    ) {
+        ZoneId zoneId = resolveZoneId(timeZone);
+        Instant fromInstant = fromDate.atStartOfDay(zoneId).toInstant();
+        Instant toInstant = toDate.atTime(LocalTime.MAX).atZone(zoneId).toInstant();
+        GetDashboardCashflowResponse result = getDashboardCashflowUseCase.execute(accountId, fromInstant, toInstant, zoneId);
         return ResponseEntity.status(HttpStatus.OK).body(result);
     }
 
