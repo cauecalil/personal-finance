@@ -17,12 +17,15 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
     private final CategoryJpaRepository categoryJpaRepository;
 
     @Override
-    public void saveAll(List<Category> categories) {
+    public List<Category> saveAll(List<Category> categories) {
         List<CategoryJpaEntity> entities = categories.stream()
                 .map(CategoryMapper::toEntity)
                 .toList();
 
-        categoryJpaRepository.saveAll(entities);
+        return categoryJpaRepository.saveAll(entities)
+                .stream()
+                .map(CategoryMapper::toDomain)
+                .toList();
     }
 
     @Override

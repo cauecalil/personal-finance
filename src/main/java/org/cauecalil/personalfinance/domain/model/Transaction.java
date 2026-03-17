@@ -1,13 +1,14 @@
 package org.cauecalil.personalfinance.domain.model;
 
 import lombok.*;
+import org.cauecalil.personalfinance.domain.model.valueobject.MovementClass;
 import org.cauecalil.personalfinance.domain.model.valueobject.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor(access = AccessLevel.PACKAGE)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Transaction {
@@ -18,6 +19,7 @@ public class Transaction {
     private BigDecimal amount;
     private BigDecimal amountInAccountCurrency;
     private TransactionType type;
+    private MovementClass movementClass;
     private String categoryId;
     private Instant occurredAt;
 }

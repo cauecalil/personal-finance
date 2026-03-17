@@ -15,6 +15,7 @@ public class TransactionMapper {
                 .amount(transaction.getAmount())
                 .amountInAccountCurrency(transaction.getAmountInAccountCurrency())
                 .type(transaction.getType())
+                .movementClass(transaction.getMovementClass())
                 .category(category)
                 .occurredAt(transaction.getOccurredAt())
                 .build();
@@ -29,6 +30,7 @@ public class TransactionMapper {
                 .amount(entity.getAmount())
                 .amountInAccountCurrency(entity.getAmountInAccountCurrency())
                 .type(entity.getType())
+                .movementClass(entity.getMovementClass())
                 .categoryId(entity.getCategory().getId())
                 .occurredAt(entity.getOccurredAt())
                 .build();

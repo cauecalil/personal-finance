@@ -6,10 +6,7 @@ import org.cauecalil.personalfinance.application.dto.response.SyncBankDataRespon
 import org.cauecalil.personalfinance.application.exception.BankConnectionNotFoundException;
 import org.cauecalil.personalfinance.application.exception.UserCredentialNotFoundException;
 import org.cauecalil.personalfinance.application.port.FinancialGateway;
-import org.cauecalil.personalfinance.domain.model.Account;
-import org.cauecalil.personalfinance.domain.model.BankConnection;
-import org.cauecalil.personalfinance.domain.model.Transaction;
-import org.cauecalil.personalfinance.domain.model.UserCredential;
+import org.cauecalil.personalfinance.domain.model.*;
 import org.cauecalil.personalfinance.domain.model.valueobject.BankConnectionStatus;
 import org.cauecalil.personalfinance.domain.repository.AccountRepository;
 import org.cauecalil.personalfinance.domain.repository.BankConnectionRepository;
@@ -29,13 +26,14 @@ public class SyncBankDataUseCase {
     private final BankConnectionRepository bankConnectionRepository;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final TransactionClassificationUseCase transactionClassificationUseCase;
     private final FinancialGateway financialGateway;
 
     public SyncBankDataResponse execute() {
         UserCredential userCredential = userCredentialRepository.find()
                 .orElseThrow(UserCredentialNotFoundException::new);
 
-        int categoriesSynced = syncCategoriesUseCase.execute(userCredential);
+        List<Category> categories = syncCategoriesUseCase.execute(userCredential);
 
         List<BankConnection> bankConnections = bankConnectionRepository.findAll();
 
@@ -61,6 +59,8 @@ public class SyncBankDataUseCase {
                         .flatMap(account -> financialGateway.fetchTransactions(userCredential, account.getId()).stream())
                         .collect(Collectors.toList());
 
+                transactions = transactionClassificationUseCase.execute(transactions, accounts, categories);
+
                 accountRepository.saveAll(accounts);
                 transactionRepository.saveAll(transactions);
 
@@ -77,7 +77,7 @@ public class SyncBankDataUseCase {
         }
 
         return SyncBankDataResponse.builder()
-                .categoriesSynced(categoriesSynced)
+                .categoriesSynced(categories.size())
                 .accountsSynced(accountsSynced)
                 .transactionsSynced(transactionsSynced)
                 .build();

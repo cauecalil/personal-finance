@@ -16,11 +16,10 @@ public class SyncCategoriesUseCase {
     private final FinancialGateway financialGateway;
     private final CategoryRepository categoryRepository;
 
-    public int execute(UserCredential userCredential) {
+    public List<Category> execute(UserCredential userCredential) {
         List<Category> categories = financialGateway.fetchCategories(userCredential);
         List<Category> categoriesWithRoot = assignRootCategoryIds(categories);
-        categoryRepository.saveAll(categoriesWithRoot);
-        return categoriesWithRoot.size();
+        return categoryRepository.saveAll(categoriesWithRoot);
     }
 
     private List<Category> assignRootCategoryIds(List<Category> categories) {

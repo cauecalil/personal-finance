@@ -23,11 +23,12 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
 
     @Query("""
         SELECT
-            SUM(CASE WHEN type = 'CREDIT' THEN COALESCE(amountInAccountCurrency, amount) ELSE 0 END) AS totalIncome,
-            SUM(CASE WHEN type = 'DEBIT' THEN COALESCE(amountInAccountCurrency, amount) ELSE 0 END) AS totalExpenses
-        FROM TransactionJpaEntity
-        WHERE occurredAt BETWEEN :from AND :to
-        AND (:accountId IS NULL OR account.id = :accountId)
+            COALESCE(SUM(CASE WHEN t.type = 'CREDIT' THEN ABS(COALESCE(t.amountInAccountCurrency, t.amount)) ELSE 0 END), 0) AS totalIncome,
+            COALESCE(SUM(CASE WHEN t.type = 'DEBIT' THEN ABS(COALESCE(t.amountInAccountCurrency, t.amount)) ELSE 0 END), 0) AS totalExpenses
+        FROM TransactionJpaEntity t
+        WHERE t.occurredAt BETWEEN :from AND :to
+            AND (:accountId IS NULL OR t.account.id = :accountId)
+            AND (:accountId IS NOT NULL OR COALESCE(t.movementClass, 'REGULAR') <> 'INTERNAL_TRANSFER')
     """)
     TransactionRepository.Metrics findMetrics(String accountId, Instant from, Instant to);
 
@@ -40,6 +41,7 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
         LEFT JOIN t.category cat
         LEFT JOIN CategoryJpaEntity root ON root.id = cat.rootCategoryId
         WHERE t.occurredAt BETWEEN :from AND :to AND (:accountId IS NULL OR t.account.id = :accountId)
+            AND (:accountId IS NOT NULL OR COALESCE(t.movementClass, 'REGULAR') <> 'INTERNAL_TRANSFER')
         GROUP BY t.type, COALESCE(root.descriptionTranslated, root.description, cat.descriptionTranslated, cat.description, 'Other')
         ORDER BY t.type ASC, SUM(ABS(COALESCE(t.amountInAccountCurrency, t.amount))) DESC
     """)
@@ -54,10 +56,11 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
             SELECT
                 FORMATDATETIME(t.occurred_at, 'yyyy-MM-dd', 'en', :timeZone) AS periodKey,
                 t.type AS type,
-                COALESCE(t.amount_in_account_currency, t.amount) AS effectiveAmount
+                ABS(COALESCE(t.amount_in_account_currency, t.amount)) AS effectiveAmount
             FROM transactions t
             WHERE t.occurred_at BETWEEN :from AND :to
               AND (:accountId IS NULL OR t.account_id = :accountId)
+              AND (:accountId IS NOT NULL OR COALESCE(t.movement_class, 'REGULAR') <> 'INTERNAL_TRANSFER')
         ) x
         GROUP BY x.periodKey
         ORDER BY x.periodKey
@@ -73,10 +76,11 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
             SELECT
                 FORMATDATETIME(t.occurred_at, 'YYYY-ww', 'en', :timeZone) AS periodKey,
                 t.type AS type,
-                COALESCE(t.amount_in_account_currency, t.amount) AS effectiveAmount
+                ABS(COALESCE(t.amount_in_account_currency, t.amount)) AS effectiveAmount
             FROM transactions t
             WHERE t.occurred_at BETWEEN :from AND :to
               AND (:accountId IS NULL OR t.account_id = :accountId)
+              AND (:accountId IS NOT NULL OR COALESCE(t.movement_class, 'REGULAR') <> 'INTERNAL_TRANSFER')
         ) x
         GROUP BY x.periodKey
         ORDER BY x.periodKey
@@ -92,10 +96,11 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
             SELECT
                 FORMATDATETIME(t.occurred_at, 'yyyy-MM', 'en', :timeZone) AS periodKey,
                 t.type AS type,
-                COALESCE(t.amount_in_account_currency, t.amount) AS effectiveAmount
+                ABS(COALESCE(t.amount_in_account_currency, t.amount)) AS effectiveAmount
             FROM transactions t
             WHERE t.occurred_at BETWEEN :from AND :to
               AND (:accountId IS NULL OR t.account_id = :accountId)
+              AND (:accountId IS NOT NULL OR COALESCE(t.movement_class, 'REGULAR') <> 'INTERNAL_TRANSFER')
         ) x
         GROUP BY x.periodKey
         ORDER BY x.periodKey
@@ -111,10 +116,11 @@ public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEn
             SELECT
                 FORMATDATETIME(t.occurred_at, 'yyyy', 'en', :timeZone) AS periodKey,
                 t.type AS type,
-                COALESCE(t.amount_in_account_currency, t.amount) AS effectiveAmount
+                ABS(COALESCE(t.amount_in_account_currency, t.amount)) AS effectiveAmount
             FROM transactions t
             WHERE t.occurred_at BETWEEN :from AND :to
               AND (:accountId IS NULL OR t.account_id = :accountId)
+              AND (:accountId IS NOT NULL OR COALESCE(t.movement_class, 'REGULAR') <> 'INTERNAL_TRANSFER')
         ) x
         GROUP BY x.periodKey
         ORDER BY x.periodKey
