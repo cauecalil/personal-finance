@@ -6,17 +6,24 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.*;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.util.Optional;
 
 @Component
 @Slf4j
 public class KeyStoreCredentialStore {
-    private static final String KEYSTORE_PATH = "./credentials.p12";
+    private static final Path KEYSTORE_PATH = Paths.get(
+            System.getProperty("user.home"),
+            ".cauecalil-personal-finance-app",
+            "credentials.p12"
+    );
+
     private static final String KEYSTORE_TYPE = "PKCS12";
     private static final char[] KEYSTORE_PASSWORD = "pf-local-store".toCharArray();
     private static final String CLIENT_ID_ALIAS = "pluggy-client-id";
@@ -40,16 +47,14 @@ public class KeyStoreCredentialStore {
 
             persistToFile(keyStore);
 
-            log.debug("Credentials saved to KeyStore");
+            log.debug("Credentials saved to KeyStore at {}", KEYSTORE_PATH);
         } catch (Exception e) {
             throw new CredentialStoreException("Failed to save credentials", e);
         }
     }
 
     public Optional<String[]> load() {
-        File file = new File(KEYSTORE_PATH);
-
-        if (!file.exists()) {
+        if (!Files.exists(KEYSTORE_PATH)) {
             return Optional.empty();
         }
 
@@ -76,10 +81,8 @@ public class KeyStoreCredentialStore {
 
     public void delete() {
         try {
-            File file = new File(KEYSTORE_PATH);
-
-            if (file.exists()) {
-                Files.delete(Path.of(KEYSTORE_PATH));
+            if (Files.exists(KEYSTORE_PATH)) {
+                Files.delete(KEYSTORE_PATH);
                 log.debug("Credentials deleted from KeyStore");
             }
         } catch (Exception e) {
@@ -89,10 +92,9 @@ public class KeyStoreCredentialStore {
 
     private KeyStore loadOrCreate() throws Exception {
         KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-        File file = new File(KEYSTORE_PATH);
 
-        if (file.exists()) {
-            try (InputStream is = new FileInputStream(file)) {
+        if (Files.exists(KEYSTORE_PATH)) {
+            try (InputStream is = Files.newInputStream(KEYSTORE_PATH)) {
                 keyStore.load(is, KEYSTORE_PASSWORD);
             }
         } else {
@@ -103,9 +105,14 @@ public class KeyStoreCredentialStore {
     }
 
     private void persistToFile(KeyStore keyStore) throws Exception {
-        File file = new File(KEYSTORE_PATH);
+        Path parentDir = KEYSTORE_PATH.getParent();
 
-        try (OutputStream os = new FileOutputStream(file)) {
+        if (parentDir != null && !Files.exists(parentDir)) {
+            Files.createDirectories(parentDir);
+            log.debug("Application base directory created: {}", parentDir);
+        }
+
+        try (OutputStream os = Files.newOutputStream(KEYSTORE_PATH)) {
             keyStore.store(os, KEYSTORE_PASSWORD);
         }
     }
