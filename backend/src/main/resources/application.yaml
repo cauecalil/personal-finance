@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: personal-finance
+  datasource:
+    url: jdbc:h2:file:${user.home}/.cauecalil-personal-finance-app/finance;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+server:
+  address: 127.0.0.1
+  port: 8080
+
+logging:
+  level:
+    com.cauecalil: DEBUG
+    org.hibernate.SQL: WARN
