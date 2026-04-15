@@ -14,9 +14,19 @@ spring:
 
 server:
   address: 127.0.0.1
-  port: 8080
+  port: 2560
 
 logging:
   level:
     com.cauecalil: DEBUG
     org.hibernate.SQL: WARN
+
+app:
+  heartbeat:
+    enabled: true
+    timeout-ms: 25000
+    monitor-delay-ms: 5000
+    startup-grace-ms: 15000
+  desktop:
+    open-browser-on-startup: true
+    startup-url: http://${server.address}:${server.port}

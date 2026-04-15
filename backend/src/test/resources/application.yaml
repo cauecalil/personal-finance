@@ -1,0 +1,9 @@
+app:
+  heartbeat:
+    enabled: false
+    timeout-ms: 25000
+    monitor-delay-ms: 5000
+    startup-grace-ms: 15000
+  desktop:
+    open-browser-on-startup: false
+    startup-url: http://${server.address}:${server.port}

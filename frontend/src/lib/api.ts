@@ -259,3 +259,10 @@ export async function syncData(): Promise<void> {
 	await request<void>("/api/sync", { method: "POST" });
 }
 
+export async function sendHeartbeat(): Promise<void> {
+	await request<void>("/api/heartbeat", {
+		method: "POST",
+		keepalive: true,
+		cache: "no-store"
+	});
+}

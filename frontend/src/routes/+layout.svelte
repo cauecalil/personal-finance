@@ -1,10 +1,13 @@
 <script lang="ts">
 	import "../app.css";
+	import { browser, building } from "$app/environment";
 	import { goto } from "$app/navigation";
 	import favicon from "$lib/assets/favicon.svg";
 	import { Loader2 } from "@lucide/svelte";
 	import { page } from "$app/state";
 	import { ModeWatcher } from "mode-watcher";
+	import { onMount } from "svelte";
+	import { sendHeartbeat } from "$lib/api";
 	import AppHeader from "$lib/components/layout/app-header.svelte";
 	import AppSidebar from "$lib/components/layout/app-sidebar.svelte";
 	import { TooltipProvider } from "$lib/components/ui/tooltip";
@@ -12,6 +15,7 @@
 	import { filtersState } from "$lib/state/filters.svelte";
 	import { setupState } from "$lib/state/setup.svelte";
 
+	const HEARTBEAT_INTERVAL_MS = 5000;
 	let { children } = $props();
 
 	const headerAccounts = $derived(
@@ -29,11 +33,11 @@
 				"Todas as Contas")
 	);
 
+	const isSetupRoute = $derived(page.url.pathname === "/setup" || page.url.pathname.startsWith("/setup/"));
+
 	function handleDatePresetChange(preset: Exclude<DatePreset, "custom">) {
 		filtersState.setDatePreset(preset);
 	}
-
-	const isSetupRoute = $derived(page.url.pathname === "/setup" || page.url.pathname.startsWith("/setup/"));
 
 	$effect(() => {
 		void setupState.bootstrap();
@@ -45,6 +49,21 @@
 		if (isSetupRoute) return;
 
 		void goto("/setup", { replaceState: true });
+	});
+
+	onMount(() => {
+		if (!browser || building) return;
+
+		const pulse = () => {
+			void sendHeartbeat().catch(() => {});
+		};
+
+		pulse();
+		const timerId = window.setInterval(pulse, HEARTBEAT_INTERVAL_MS);
+
+		return () => {
+			window.clearInterval(timerId);
+		};
 	});
 </script>
 
