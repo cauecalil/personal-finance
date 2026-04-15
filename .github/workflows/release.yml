@@ -1,0 +1,316 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: read
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Preflight release
+    runs-on: ubuntu-latest
+
+    outputs:
+      should_release: ${{ steps.semantic_release.outputs.new_release_published }}
+      release_version: ${{ steps.semantic_release.outputs.new_release_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Semantic release dry-run
+        id: semantic_release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          dry_run: true
+          extra_plugins: |
+            @semantic-release/changelog@6.0.3
+            @semantic-release/exec@7.0.3
+            @semantic-release/git@10.0.1
+            @semantic-release/github@11.0.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Print preflight result
+        run: |
+          if [ "${{ steps.semantic_release.outputs.new_release_published }}" != "true" ]; then
+            echo "No eligible release found; finishing without creating tag/release."
+            exit 0
+          fi
+          echo "Eligible version: ${{ steps.semantic_release.outputs.new_release_version }}"
+
+  build:
+    name: Build backend jar
+    needs: preflight
+    if: needs.preflight.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+
+    outputs:
+      jar_name: ${{ steps.collect_jar.outputs.jar_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java and Maven auth
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: PACKAGES_TOKEN
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Sync release version
+        run: node .github/scripts/sync-release-version.mjs "${{ needs.preflight.outputs.release_version }}"
+
+      - name: Build application
+        run: mvn -B -ntp -f backend/pom.xml clean package
+
+      - name: Collect executable jar
+        id: collect_jar
+        run: |
+          jar_path="$(find backend/target -maxdepth 1 -type f -name '*.jar' ! -name '*.original' | head -n 1)"
+          if [ -z "${jar_path}" ]; then
+            echo "::error::No executable jar generated."
+            exit 1
+          fi
+          echo "jar_name=$(basename "${jar_path}")" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload jar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar-${{ github.run_id }}
+          path: backend/target/${{ steps.collect_jar.outputs.jar_name }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+  package:
+    name: Package ${{ matrix.platform }}
+    needs: [preflight, build]
+    if: needs.preflight.outputs.should_release == 'true'
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+            pattern: "*-windows-portable.zip"
+          - platform: macos
+            os: macos-latest
+            pattern: "*-macos-portable.zip"
+          - platform: linux
+            os: ubuntu-latest
+            pattern: "*-linux-portable.tar.gz"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Download jar artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar-${{ github.run_id }}
+          path: backend/target
+
+      - name: Clean dist folders (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist/input dist/output release-assets
+          rm -rf dist/input/* dist/output/* release-assets/*
+
+      - name: Clean dist folders (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist\input | Out-Null
+          New-Item -ItemType Directory -Force -Path dist\output | Out-Null
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          Remove-Item -Path dist\input\* -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path dist\output\* -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path release-assets\* -Recurse -Force -ErrorAction SilentlyContinue
+
+      - name: Package Windows asset
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $jarPath = Resolve-Path "backend\target\${{ needs.build.outputs.jar_name }}"
+          .\dist\scripts\package-windows.ps1 -JarPath $jarPath -AppVersion "${{ needs.preflight.outputs.release_version }}"
+
+      - name: Package macOS asset
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          chmod +x dist/scripts/package-macos.sh
+          ./dist/scripts/package-macos.sh "${{ needs.preflight.outputs.release_version }}" "backend/target/${{ needs.build.outputs.jar_name }}"
+
+      - name: Package Linux asset
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          chmod +x dist/scripts/package-linux.sh
+          ./dist/scripts/package-linux.sh "${{ needs.preflight.outputs.release_version }}" "backend/target/${{ needs.build.outputs.jar_name }}"
+
+      - name: Collect packaged asset (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          asset_path="$(find dist/output -maxdepth 1 -type f -name '${{ matrix.pattern }}' | head -n 1)"
+          if [ -z "${asset_path}" ]; then
+            echo "::error::Missing expected asset with pattern ${{ matrix.pattern }}"
+            exit 1
+          fi
+          if [ ! -s "${asset_path}" ]; then
+            echo "::error::Generated asset is empty: ${asset_path}"
+            exit 1
+          fi
+          cp "${asset_path}" release-assets/
+
+      - name: Collect packaged asset (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $asset = Get-ChildItem -Path dist\output -Filter "${{ matrix.pattern }}" -File | Select-Object -First 1
+          if (-not $asset) {
+            throw "Missing expected asset with pattern ${{ matrix.pattern }}"
+          }
+          if ($asset.Length -le 0) {
+            throw "Generated asset is empty: $($asset.FullName)"
+          }
+          Copy-Item -Path $asset.FullName -Destination (Join-Path "release-assets" $asset.Name) -Force
+
+      - name: Upload platform artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-${{ matrix.platform }}-${{ github.run_id }}
+          path: release-assets/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+  publish:
+    name: Publish semantic release
+    needs: [preflight, package]
+    if: needs.preflight.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download packaged assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: portable-*-${{ github.run_id }}
+          merge-multiple: true
+          path: release-assets
+
+      - name: Validate asset set and integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          windows=(release-assets/*-windows-portable.zip)
+          macos=(release-assets/*-macos-portable.zip)
+          linux=(release-assets/*-linux-portable.tar.gz)
+
+          if [ "${#windows[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one Windows artifact, found ${#windows[@]}."
+            exit 1
+          fi
+          if [ "${#macos[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one macOS artifact, found ${#macos[@]}."
+            exit 1
+          fi
+          if [ "${#linux[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one Linux artifact, found ${#linux[@]}."
+            exit 1
+          fi
+
+          for asset in "${windows[@]}" "${macos[@]}" "${linux[@]}"; do
+            if [ ! -s "${asset}" ]; then
+              echo "::error::Artifact is empty: ${asset}"
+              exit 1
+            fi
+          done
+
+          unzip -t "${windows[0]}" >/dev/null
+          unzip -t "${macos[0]}" >/dev/null
+          tar -tzf "${linux[0]}" >/dev/null
+
+          sha256sum "${windows[0]}" "${macos[0]}" "${linux[0]}" > release-assets/SHA256SUMS.txt
+          ls -lh release-assets
+
+      - name: Confirm release version
+        id: semantic_release_confirm
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          dry_run: true
+          extra_plugins: |
+            @semantic-release/changelog@6.0.3
+            @semantic-release/exec@7.0.3
+            @semantic-release/git@10.0.1
+            @semantic-release/github@11.0.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate preflight version lock
+        run: |
+          if [ "${{ steps.semantic_release_confirm.outputs.new_release_published }}" != "true" ]; then
+            echo "::error::Release is no longer eligible at publish time."
+            exit 1
+          fi
+          if [ "${{ steps.semantic_release_confirm.outputs.new_release_version }}" != "${{ needs.preflight.outputs.release_version }}" ]; then
+            echo "::error::Version drift detected between preflight and publish."
+            echo "Preflight: ${{ needs.preflight.outputs.release_version }}"
+            echo "Publish check: ${{ steps.semantic_release_confirm.outputs.new_release_version }}"
+            exit 1
+          fi
+
+      - name: Publish release
+        id: semantic_release_publish
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            @semantic-release/changelog@6.0.3
+            @semantic-release/exec@7.0.3
+            @semantic-release/git@10.0.1
+            @semantic-release/github@11.0.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Print release result
+        run: |
+          echo "Published version: ${{ steps.semantic_release_publish.outputs.new_release_version }}"
