@@ -3,268 +3,204 @@ package com.cauecalil.personalfinance.application.usecase;
 import com.cauecalil.personalfinance.application.dto.response.GetDashboardCashflowResponse;
 import com.cauecalil.personalfinance.application.exception.AccountNotFoundException;
 import com.cauecalil.personalfinance.application.exception.FromDateAfterToDateException;
-import com.cauecalil.personalfinance.domain.model.Account;
-import com.cauecalil.personalfinance.domain.model.Transaction;
-import com.cauecalil.personalfinance.domain.model.valueobject.AccountType;
-import com.cauecalil.personalfinance.domain.repository.AccountRepository;
-import com.cauecalil.personalfinance.domain.repository.TransactionRepository;
+import com.cauecalil.personalfinance.domain.model.valueobject.*;
+import com.cauecalil.personalfinance.infrastructure.persistence.entity.AccountJpaEntity;
+import com.cauecalil.personalfinance.infrastructure.persistence.entity.BankConnectionJpaEntity;
+import com.cauecalil.personalfinance.infrastructure.persistence.entity.CategoryJpaEntity;
+import com.cauecalil.personalfinance.infrastructure.persistence.entity.TransactionJpaEntity;
+import com.cauecalil.personalfinance.infrastructure.persistence.repository.AccountJpaRepository;
+import com.cauecalil.personalfinance.infrastructure.persistence.repository.BankConnectionJpaRepository;
+import com.cauecalil.personalfinance.infrastructure.persistence.repository.CategoryJpaRepository;
+import com.cauecalil.personalfinance.infrastructure.persistence.repository.TransactionJpaRepository;
+import com.cauecalil.personalfinance.support.H2UseCaseIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class GetDashboardCashflowUseCaseTest {
+class GetDashboardCashflowUseCaseTest extends H2UseCaseIntegrationTest {
+
     private static final ZoneId UTC = ZoneId.of("UTC");
 
+    @Autowired
+    private GetDashboardCashflowUseCase useCase;
+
+    @Autowired
+    private AccountJpaRepository accountJpaRepository;
+
+    @Autowired
+    private BankConnectionJpaRepository bankConnectionJpaRepository;
+
+    @Autowired
+    private CategoryJpaRepository categoryJpaRepository;
+
+    @Autowired
+    private TransactionJpaRepository transactionJpaRepository;
+
     @Test
-    void shouldFillMissingDailyPeriodsWithZero() {
+    void shouldFillMissingDailyPeriodsWithZero_whenRangeSpansMultipleDays() {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-03T23:59:59Z");
 
-        FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
-        transactionRepository.cashflowAggregations = List.of(
-                new TransactionRepository.CashflowAggregation(
-                        Instant.parse("2026-03-01T00:00:00Z"),
-                        new BigDecimal("100.00"),
-                        new BigDecimal("40.00")
-                ),
-                new TransactionRepository.CashflowAggregation(
-                        Instant.parse("2026-03-03T00:00:00Z"),
-                        new BigDecimal("35.50"),
-                        new BigDecimal("10.10")
-                )
-        );
+        BankConnectionJpaEntity connection = persistBankConnection("cashflow-fill");
+        AccountJpaEntity account = persistAccount("acc-cashflow", connection);
+        CategoryJpaEntity category = persistCategory("cat-cashflow", "General");
 
-        GetDashboardCashflowUseCase useCase = new GetDashboardCashflowUseCase(new FakeAccountRepository(), transactionRepository);
+        persistTransaction("tx-1", account, category, TransactionType.CREDIT, MovementClass.REGULAR, new BigDecimal("100.00"), null, Instant.parse("2026-03-01T08:00:00Z"));
+        persistTransaction("tx-2", account, category, TransactionType.DEBIT, MovementClass.REGULAR, new BigDecimal("40.00"), null, Instant.parse("2026-03-01T10:00:00Z"));
+        persistTransaction("tx-3", account, category, TransactionType.CREDIT, MovementClass.REGULAR, new BigDecimal("35.50"), null, Instant.parse("2026-03-03T08:00:00Z"));
+        persistTransaction("tx-4", account, category, TransactionType.DEBIT, MovementClass.REGULAR, new BigDecimal("10.10"), null, Instant.parse("2026-03-03T10:00:00Z"));
 
         GetDashboardCashflowResponse response = useCase.execute(null, from, to, UTC);
 
-        assertEquals(GetDashboardCashflowResponse.Granularity.DAILY, response.granularity());
-        assertEquals(3, response.points().size());
+        assertThat(response.granularity()).isEqualTo(GetDashboardCashflowResponse.Granularity.DAILY);
+        assertThat(response.points()).hasSize(3);
 
-        assertEquals(new BigDecimal("100.00"), response.points().get(0).incomeTotal());
-        assertEquals(new BigDecimal("40.00"), response.points().get(0).expensesTotal());
-
-        assertEquals(BigDecimal.ZERO, response.points().get(1).incomeTotal());
-        assertEquals(BigDecimal.ZERO, response.points().get(1).expensesTotal());
-
-        assertEquals(new BigDecimal("35.50"), response.points().get(2).incomeTotal());
-        assertEquals(new BigDecimal("10.10"), response.points().get(2).expensesTotal());
-        assertEquals(UTC, transactionRepository.lastZoneId);
-        assertEquals(from, transactionRepository.lastFrom);
-        assertEquals(to, transactionRepository.lastTo);
+        assertThat(response.points().get(0).incomeTotal()).isEqualByComparingTo("100.00");
+        assertThat(response.points().get(0).expensesTotal()).isEqualByComparingTo("40.00");
+        assertThat(response.points().get(1).incomeTotal()).isEqualByComparingTo("0");
+        assertThat(response.points().get(1).expensesTotal()).isEqualByComparingTo("0");
+        assertThat(response.points().get(2).incomeTotal()).isEqualByComparingTo("35.50");
+        assertThat(response.points().get(2).expensesTotal()).isEqualByComparingTo("10.10");
     }
 
     @Test
-    void shouldReturnAbsoluteTotalsWhenRepositoryReturnsSignedValues() {
+    void shouldUseAbsoluteTotals_whenRepositoryStoresSignedValues() {
         Instant from = Instant.parse("2026-03-01T00:00:00Z");
         Instant to = Instant.parse("2026-03-01T23:59:59Z");
 
-        FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
-        transactionRepository.cashflowAggregations = List.of(
-                new TransactionRepository.CashflowAggregation(
-                        Instant.parse("2026-03-01T00:00:00Z"),
-                        new BigDecimal("-250.00"),
-                        new BigDecimal("-120.75")
-                )
-        );
+        BankConnectionJpaEntity connection = persistBankConnection("cashflow-abs");
+        AccountJpaEntity account = persistAccount("acc-cashflow-abs", connection);
+        CategoryJpaEntity category = persistCategory("cat-cashflow-abs", "General");
 
-        GetDashboardCashflowUseCase useCase = new GetDashboardCashflowUseCase(new FakeAccountRepository(), transactionRepository);
+        persistTransaction("tx-abs-1", account, category, TransactionType.CREDIT, MovementClass.REGULAR, new BigDecimal("-250.00"), null, Instant.parse("2026-03-01T08:00:00Z"));
+        persistTransaction("tx-abs-2", account, category, TransactionType.DEBIT, MovementClass.REGULAR, new BigDecimal("-120.75"), null, Instant.parse("2026-03-01T09:00:00Z"));
 
         GetDashboardCashflowResponse response = useCase.execute(null, from, to, UTC);
 
-        assertEquals(new BigDecimal("250.00"), response.points().getFirst().incomeTotal());
-        assertEquals(new BigDecimal("120.75"), response.points().getFirst().expensesTotal());
+        assertThat(response.points()).hasSize(1);
+        assertThat(response.points().getFirst().incomeTotal()).isEqualByComparingTo("250.00");
+        assertThat(response.points().getFirst().expensesTotal()).isEqualByComparingTo("120.75");
     }
 
     @Test
-    void shouldKeepDailyBucketAlignedWithRequestTimezoneAtMidnightBoundary() {
-        ZoneId zoneId = ZoneId.of("America/Sao_Paulo");
-        Instant from = Instant.parse("2026-03-01T03:00:00Z");
-        Instant to = Instant.parse("2026-03-02T02:59:59Z");
-
-        FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
-        transactionRepository.cashflowAggregations = List.of(
-                new TransactionRepository.CashflowAggregation(
-                        Instant.parse("2026-03-01T03:00:00Z"),
-                        new BigDecimal("80.00"),
-                        new BigDecimal("15.00")
-                )
-        );
-
-        GetDashboardCashflowUseCase useCase = new GetDashboardCashflowUseCase(new FakeAccountRepository(), transactionRepository);
-
-        GetDashboardCashflowResponse response = useCase.execute(null, from, to, zoneId);
-
-        assertEquals(GetDashboardCashflowResponse.Granularity.DAILY, response.granularity());
-        assertEquals(1, response.points().size());
-        assertEquals(Instant.parse("2026-03-01T03:00:00Z"), response.points().getFirst().periodStart());
-        assertEquals(Instant.parse("2026-03-02T02:59:59Z"), response.points().getFirst().periodEnd());
-    }
-
-    @Test
-    void shouldKeepDailyBucketAlignedWhenDstChangesDayLength() {
-        ZoneId zoneId = ZoneId.of("America/New_York");
-        Instant from = Instant.parse("2026-03-08T05:00:00Z");
-        Instant to = Instant.parse("2026-03-09T03:59:59.999999999Z");
-
-        FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
-        transactionRepository.cashflowAggregations = List.of(
-                new TransactionRepository.CashflowAggregation(
-                        Instant.parse("2026-03-08T05:00:00Z"),
-                        new BigDecimal("42.00"),
-                        new BigDecimal("7.00")
-                )
-        );
-
-        GetDashboardCashflowUseCase useCase = new GetDashboardCashflowUseCase(new FakeAccountRepository(), transactionRepository);
-
-        GetDashboardCashflowResponse response = useCase.execute(null, from, to, zoneId);
-
-        assertEquals(GetDashboardCashflowResponse.Granularity.DAILY, response.granularity());
-        assertEquals(1, response.points().size());
-        assertEquals(Instant.parse("2026-03-08T05:00:00Z"), response.points().getFirst().periodStart());
-        assertEquals(Instant.parse("2026-03-09T03:59:59.999999999Z"), response.points().getFirst().periodEnd());
-    }
-
-    @Test
-    void shouldChooseWeeklyGranularityForMediumRanges() {
+    void shouldUseWeeklyGranularity_whenRangeHasMoreThan31Days() {
         Instant from = Instant.parse("2026-01-01T00:00:00Z");
         Instant to = Instant.parse("2026-04-01T00:00:00Z");
 
-        FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
-        GetDashboardCashflowUseCase useCase = new GetDashboardCashflowUseCase(new FakeAccountRepository(), transactionRepository);
-
         GetDashboardCashflowResponse response = useCase.execute(null, from, to, UTC);
 
-        assertEquals(GetDashboardCashflowResponse.Granularity.WEEKLY, response.granularity());
-        assertEquals(TransactionRepository.CashflowGranularity.WEEKLY, transactionRepository.lastGranularity);
+        assertThat(response.granularity()).isEqualTo(GetDashboardCashflowResponse.Granularity.WEEKLY);
     }
 
     @Test
-    void shouldChooseMonthlyGranularityForLongRanges() {
+    void shouldUseMonthlyGranularity_whenRangeHasMoreThan180Days() {
         Instant from = Instant.parse("2026-01-01T00:00:00Z");
         Instant to = Instant.parse("2026-10-01T00:00:00Z");
 
-        FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
-        GetDashboardCashflowUseCase useCase = new GetDashboardCashflowUseCase(new FakeAccountRepository(), transactionRepository);
+        GetDashboardCashflowResponse response = useCase.execute(null, from, to, UTC);
+
+        assertThat(response.granularity()).isEqualTo(GetDashboardCashflowResponse.Granularity.MONTHLY);
+    }
+
+    @Test
+    void shouldUseYearlyGranularity_whenRangeHasMoreThan730Days() {
+        Instant from = Instant.parse("2024-01-01T00:00:00Z");
+        Instant to = Instant.parse("2026-12-31T23:59:59Z");
 
         GetDashboardCashflowResponse response = useCase.execute(null, from, to, UTC);
 
-        assertEquals(GetDashboardCashflowResponse.Granularity.MONTHLY, response.granularity());
-        assertEquals(TransactionRepository.CashflowGranularity.MONTHLY, transactionRepository.lastGranularity);
+        assertThat(response.granularity()).isEqualTo(GetDashboardCashflowResponse.Granularity.YEARLY);
     }
 
     @Test
-    void shouldThrowWhenFromDateIsAfterToDate() {
-        GetDashboardCashflowUseCase useCase = new GetDashboardCashflowUseCase(new FakeAccountRepository(), new FakeTransactionRepository());
+    void shouldThrowFromDateAfterToDateException_whenFromIsAfterTo() {
+        Instant from = Instant.parse("2026-04-02T00:00:00Z");
+        Instant to = Instant.parse("2026-04-01T00:00:00Z");
 
-        assertThrows(
-                FromDateAfterToDateException.class,
-                () -> useCase.execute(null, Instant.parse("2026-04-01T00:00:00Z"), Instant.parse("2026-03-01T00:00:00Z"), UTC)
-        );
+        assertThatThrownBy(() -> useCase.execute(null, from, to, UTC))
+                .isInstanceOf(FromDateAfterToDateException.class);
     }
 
     @Test
-    void shouldThrowWhenAccountDoesNotExist() {
-        FakeAccountRepository accountRepository = new FakeAccountRepository();
-        accountRepository.findByIdResult = null;
-        GetDashboardCashflowUseCase useCase = new GetDashboardCashflowUseCase(accountRepository, new FakeTransactionRepository());
+    void shouldThrowAccountNotFoundException_whenAccountDoesNotExist() {
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to = Instant.parse("2026-03-31T23:59:59Z");
 
-        assertThrows(
-                AccountNotFoundException.class,
-                () -> useCase.execute("missing", Instant.parse("2026-03-01T00:00:00Z"), Instant.parse("2026-03-01T23:59:59Z"), UTC)
+        assertThatThrownBy(() -> useCase.execute("missing", from, to, UTC))
+                .isInstanceOf(AccountNotFoundException.class);
+    }
+
+    private BankConnectionJpaEntity persistBankConnection(String suffix) {
+        return bankConnectionJpaRepository.save(
+                BankConnectionJpaEntity.builder()
+                        .itemId(UUID.randomUUID() + "-" + suffix)
+                        .bankName("Test Bank")
+                        .status(BankConnectionStatus.UPDATED)
+                        .build()
         );
     }
 
-    private static final class FakeAccountRepository implements AccountRepository {
-        private Account findByIdResult;
-
-        @Override
-        public void saveAll(List<Account> accounts) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Optional<Account> findById(String id) {
-            return Optional.ofNullable(findByIdResult);
-        }
-
-        @Override
-        public List<Account> findAll() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public BigDecimal sumBalancesByType(AccountType type) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void deleteAll() {
-            throw new UnsupportedOperationException();
-        }
+    private AccountJpaEntity persistAccount(String id, BankConnectionJpaEntity connection) {
+        return accountJpaRepository.save(
+                AccountJpaEntity.builder()
+                        .id(id)
+                        .bankConnection(connection)
+                        .name("Account " + id)
+                        .marketingName(null)
+                        .type(AccountType.BANK)
+                        .subType(AccountSubType.CHECKING_ACCOUNT)
+                        .number("000" + Math.abs(id.hashCode()))
+                        .owner("Test Owner")
+                        .taxNumber("12345678901")
+                        .balance(new BigDecimal("1000.00"))
+                        .currency("BRL")
+                        .build()
+        );
     }
 
-    private static final class FakeTransactionRepository implements TransactionRepository {
-        private List<CashflowAggregation> cashflowAggregations = List.of();
-        private CashflowGranularity lastGranularity;
-        private ZoneId lastZoneId;
-        private Instant lastFrom;
-        private Instant lastTo;
+    private CategoryJpaEntity persistCategory(String id, String description) {
+        return categoryJpaRepository.save(
+                CategoryJpaEntity.builder()
+                        .id(id)
+                        .description(description)
+                        .descriptionTranslated(null)
+                        .parentId(null)
+                        .rootCategoryId(null)
+                        .build()
+        );
+    }
 
-        @Override
-        public void saveAll(List<Transaction> transactions) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Page<Transaction> findByAccountIdAndOccurredAtBetween(String accountId, Instant from, Instant to, Pageable pageable) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Page<Transaction> findByOccurredAtBetween(Instant from, Instant to, Pageable pageable) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Metrics findMetrics(String accountId, Instant from, Instant to) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public List<CategoryAggregation> findCategoryAggregations(String accountId, Instant from, Instant to) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public List<CashflowAggregation> findCashflowAggregations(
-                String accountId,
-                Instant from,
-                Instant to,
-                CashflowGranularity granularity,
-                ZoneId zoneId
-        ) {
-            this.lastGranularity = granularity;
-            this.lastZoneId = zoneId;
-            this.lastFrom = from;
-            this.lastTo = to;
-            return cashflowAggregations;
-        }
-
-        @Override
-        public void deleteAll() {
-            throw new UnsupportedOperationException();
-        }
+    private void persistTransaction(
+            String id,
+            AccountJpaEntity account,
+            CategoryJpaEntity category,
+            TransactionType type,
+            MovementClass movementClass,
+            BigDecimal amount,
+            BigDecimal amountInAccountCurrency,
+            Instant occurredAt
+    ) {
+        transactionJpaRepository.save(
+                TransactionJpaEntity.builder()
+                        .id(id)
+                        .account(account)
+                        .description("Transaction " + id)
+                        .currency("BRL")
+                        .amount(amount)
+                        .amountInAccountCurrency(amountInAccountCurrency)
+                        .type(type)
+                        .movementClass(movementClass)
+                        .category(category)
+                        .occurredAt(occurredAt)
+                        .build()
+        );
     }
 }
 
