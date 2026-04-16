@@ -40,7 +40,6 @@ ARGS=(
   --main-jar "$JAR_FILE_NAME"
   --main-class org.springframework.boot.loader.launch.JarLauncher
   --dest "$OUTPUT_DIR"
-  --runtime-image "$JAVA_HOME"
 )
 
 jpackage "${ARGS[@]}"
