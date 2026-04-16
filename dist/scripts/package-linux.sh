@@ -54,4 +54,9 @@ if [[ -f "$PORTABLE_ARCHIVE_PATH" ]]; then
   rm -f "$PORTABLE_ARCHIVE_PATH"
 fi
 
-tar -C "$OUTPUT_DIR" -czf "$PORTABLE_ARCHIVE_PATH" "$APP_NAME"
+# Prefer fast compression for CI throughput while keeping .tar.gz output.
+if command -v pigz >/dev/null 2>&1; then
+  tar -C "$OUTPUT_DIR" -cf - "$APP_NAME" | pigz -1 > "$PORTABLE_ARCHIVE_PATH"
+else
+  tar -C "$OUTPUT_DIR" -cf - "$APP_NAME" | gzip -1 > "$PORTABLE_ARCHIVE_PATH"
+fi
