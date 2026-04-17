@@ -1,3 +1,11 @@
+# [1.1.0](https://github.com/cauecalil/personal-finance/compare/v1.0.0...v1.1.0) (2026-04-17)
+
+
+### Features
+
+* **api:** add OpenAPI documentation and improve endpoint descriptions ([083ced2](https://github.com/cauecalil/personal-finance/commit/083ced220398ae734959d5126f34dd82546b4fe4))
+* **test:** add H2 integration test configuration ([ed78af7](https://github.com/cauecalil/personal-finance/commit/ed78af7d405078876205d7864bf9d58934116aad))
+
 # 1.0.0 (2026-04-16)
 
 
