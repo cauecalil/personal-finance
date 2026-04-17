@@ -30,3 +30,13 @@ app:
   desktop:
     open-browser-on-startup: true
     startup-url: http://${server.address}:${server.port}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    try-it-out-enabled: true
+  api-docs:
+    path: /v3/api-docs
+  show-actuator: false
